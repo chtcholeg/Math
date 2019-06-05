@@ -10,10 +10,11 @@ namespace SMT
 {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Interface of matrix classes.
+// Base class for matrices.
 // All specific matrices have to be inherited from this class.
-struct Matrix
+class Matrix
 {
+public:
    // -- Type definitions
    using T = double;                            // Type of a matrix element
    using SharedPtr = std::shared_ptr<Matrix>;   // Pointer to matrix
@@ -34,17 +35,26 @@ struct Matrix
    // If row >= RowCount() or column >= ColumnCount() behavior is undefined
    virtual T Element(size_t row, size_t column) const = 0;
    // Copies itself deeply.
-   // If there is no implementation a Standard Matrix is returned (see a declaration StandardMatrix).
-   virtual SharedPtr Copy() const;
+   virtual SharedPtr Copy() const = 0;
 
+protected:
    // -- Operations
-   //    The methods return FALSE if they are not implemented (or can't be done)
+   //    All *****Effeciency methods return special coefficient which means: how many times would the computation time increase by, if the matrices sizes were increased by 10 times?
+   //    (!) The computation time includes the creation of the result.
+   //    Examples:
+   //       1. Increasing of copying/addition time is quadric. So if we increase matrix size by 10 times the copying/addition time increases by 100 times. So CopyingEfficiency()/AdditionEfficiency() returns 100 by default.
+   //       2. Diagonal matrix represents only by diagonal elements. So if we increase matrix size by 10 times the copying time of diagonal matrix increases by 10 times. So CopyingEfficiency() returns 10.
+   //       3. Functional matrix represents by a function. So if we increase matrix size by 10 times the copying time of diagonal doesn't increase. So CopyingEfficiency() returns 1!
+   //       4. Zero matrix "knows" that it doesn't change other matrix on addition. So we need to create only a copy of other matrix. So AdditionEfficiency() of zero matrix is equal CopyingEfficiency() of other matrix.
+   // Copying
+   virtual size_t CopyingEfficiency() const { return 100; }
    // Addition
+   virtual size_t AdditionEfficiency(const Matrix& /*otherMatrix*/) { return 100; }
    virtual bool Add(const Matrix& /*otherMatrix*/) { return false; }
    // Multiplication
-   virtual bool Multiply(const T& /*number*/) { return false; }
-   virtual bool LMultiply(const Matrix& /*leftMatrix*/) { return false; }    // leftMatrix * this
-   virtual bool RMultiply(const Matrix& /*rightMatrix*/) { return false; }   // this * rightMatrix
+   virtual SharedPtr Multiply(const T& /*number*/) = 0;
+   virtual bool LMultiply(const Matrix& /*leftMatrix*/) { return false; }    // this = leftMatrix * this
+   virtual bool RMultiply(const Matrix& /*rightMatrix*/) { return false; }   // this = this * rightMatrix
    // Transposition
    virtual bool Transpose() { return false; }
 
