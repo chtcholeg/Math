@@ -53,9 +53,9 @@ Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& matrix)
    Matrix<ElementType>::OperationResult result = matrix.Copy();
    if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
    {
-      result.ResultMatrix_ = std::make_shared<StandardMatrix<ElementType>>(matrix);
-	  result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
-	  result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Copy method. Standard matrix (type:" + result.ResultMatrix_->TypeName() + ") is used instead";
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(matrix);
+      result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+      result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Copy method. Standard matrix (type:" + result.Matrix_->TypeName() + ") is used instead";
    }
    else if ((result.Code_ == Matrix<ElementType>::OperationResultCode::Ok) && (result.Description_.empty()))
    {
@@ -63,30 +63,92 @@ Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& matrix)
    }   
    return result;
 }
+
 template <typename ElementType>
 Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2)
 {
-	const Matrix<ElementType>::EfficiencyType matrix1Efficiency = matrix1.Add(matrix2);
-	const Matrix<ElementType>::EfficiencyType matrix2Efficiency = matrix2.Add(matrix1);
+	const Matrix<ElementType>::EfficiencyType matrix1Efficiency = matrix1.AddEfficiency(matrix2);
+   const Matrix<ElementType>::EfficiencyType matrix2Efficiency = matrix2.AddEfficiency(matrix1);
 	const Matrix<ElementType>::EfficiencyType bestEfficiency = std::max<Matrix<ElementType>::EfficiencyType>(matrix1Efficiency, matrix2Efficiency);
-	if (bestEfficiency == Matrix<ElementType>::UndefinedEfficiency)
+	if (bestEfficiency != Matrix<ElementType>::UndefinedEfficiency)
 	{	
-		StandardMatrix standardMatrixCopy(matrix1);
-		Matrix<ElementType>::OperationResult result = standardMatrixCopy.Add(matrix2);
-		if (result.Code_ == Matrix<ElementType>::OperationResultCode::Ok)
-		{
-			result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
-			result.Description_ = "Matrices (1st matrix type :" + matrix1.TypeName() + ", 2nd matrix type:" + matrix2.TypeName() + ") have undefined efficiency.  Standard matrix (type:" + standardMatrixCopy.TypeName() + ") is used instead";
-		}
-		return result;
-	}
-	const Matrix<ElementType>& mainMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix1 : matrix2;
-	const Matrix<ElementType>& addedMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix2 : matrix1;
-	Matrix<ElementType>::OperationResult result = mainMatrix.Add(addedMatrix);
-	if 
-    return result;
+      const Matrix<ElementType>& mainMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix1 : matrix2;
+      const Matrix<ElementType>& addedMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix2 : matrix1;
+      const Matrix<ElementType>::OperationResult result = mainMatrix.Add(addedMatrix);
+      if ((result.Code_ == Matrix<ElementType>::Ok || result.Code_ == Matrix<ElementType>::Warning) && (result.Matrix_ != nullptr))
+      {
+         if (result.Description_.empty())
+         {
+            result.Description_ = "Matrices (1st matrix type :" + matrix1.TypeName() + ", 2nd matrix type:" + matrix2.TypeName() + ") are added together";
+         }
+         return result;
+      }
+   }
+   StandardMatrix standardMatrixCopy(matrix1);
+   Matrix<ElementType>::OperationResult result = standardMatrixCopy.Add(matrix2);
+   if (result.Code_ == Matrix<ElementType>::OperationResultCode::Ok)
+   {
+      result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+      if (!result.Description_.empty())
+         result.Description_ = "Matrices (1st matrix type :" + matrix1.TypeName() + ", 2nd matrix type:" + matrix2.TypeName() + ") can't be added together.  Standard matrix (type:" + standardMatrixCopy.TypeName() + ") is used instead";
+   }
+   return result;
 }
 
+template <typename ElementType>
+Matrix<ElementType>::OperationResult MultiplyByNumber(const Matrix<ElementType>& matrix, const ElementType& number)
+{
+   Matrix<ElementType>::OperationResult result = matrix.MultiplyByNumber(number);
+   if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
+   {
+      const StandardMatrix<ElementType> standardMatrixCopy(matrix);
+      result = standardMatrixCopy.MultiplyByNumber(number);
+      if (result.Code_ == Matrix<ElementType>::OperationResultCode::Ok)
+      {
+         result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+         result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no MultiplyByNumber method. Standard matrix (type:" + result.Matrix_->TypeName() + ") is used instead";
+         return result;
+      }
+   }
+   
+   if ((result.Code_ == Matrix<ElementType>::OperationResultCode::Ok) && (result.Description_.empty()))
+   {
+      result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has been multiplied by number.";
+   }
+   return result;
+}
+
+template <typename ElementType>
+Matrix<ElementType>::OperationResult Multiply(const Matrix<ElementType>& leftMatrix, const Matrix<ElementType>& rightMatrix)
+{
+   const Matrix<ElementType>::EfficiencyType leftMatrixEfficiency = leftMatrix.MultiplyEfficiency(rightMatrix, false);
+   const Matrix<ElementType>::EfficiencyType rightMatrixEfficiency = rightMatrix.MultiplyEfficiency(leftMatrix, true);
+   const Matrix<ElementType>::EfficiencyType bestEfficiency = std::max<Matrix<ElementType>::EfficiencyType>(leftMatrixEfficiency, rightMatrixEfficiency);
+   if (bestEfficiency != Matrix<ElementType>::UndefinedEfficiency)
+   {
+      const Matrix<ElementType>& mainMatrix = (leftMatrixEfficiency >= rightMatrixEfficiency) ? leftMatrix : rightMatrix;
+      const Matrix<ElementType>& anotherMatrix = (leftMatrixEfficiency >= rightMatrixEfficiency) ? rightMatrix : leftMatrix;
+      const bool anotherMatrixIsOnTheLeft = (leftMatrixEfficiency < rightMatrixEfficiency);
+      const Matrix<ElementType>::OperationResult result = mainMatrix.Multiply(anotherMatrix, anotherMatrixIsOnTheLeft);
+      if ((result.Code_ == Matrix<ElementType>::Ok || result.Code_ == Matrix<ElementType>::Warning) && (result.Matrix_ != nullptr))
+      {
+         if (result.Description_.empty())
+         {
+            result.Description_ = "Matrices (1st matrix type :" + matrix1.TypeName() + ", 2nd matrix type:" + matrix2.TypeName() + ") are multiplied";
+         }
+         return result;
+      }
+   }
+   StandardMatrix standardMatrixCopy(leftMatrix);
+   Matrix<ElementType>::OperationResult result = standardMatrixCopy.Multiply(rightMatrix, false);
+   if (result.Code_ == Matrix<ElementType>::OperationResultCode::Ok)
+   {
+      result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+      if (result.Description_.empty())
+         result.Description_ = "Matrices (1st matrix type :" + leftMatrix.TypeName() + ", 2nd matrix type:" + rightMatrix.TypeName() + ") can't be multiplied together.  Standard matrix (type:" + standardMatrixCopy.TypeName() + ") is used instead";
+   }
+   return result;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // -- Predefined matrices

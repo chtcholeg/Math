@@ -27,25 +27,25 @@ public:
    {
       Ok,                                       // Operation is successfully done
       NotImplemented,                           // Operation is not implemented in the inherited class
-      Error,                                    // Operation can't be done. ResultMatrix_ is not valid! OperationResult::ErrorDescription_ contains a description.
-      Warning,                                  // Operation is done. ResultMatrix_ contains a valid result but there is some specific information which can be logged
+      Error,                                    // Operation can't be done. Matrix_ is not valid! OperationResult::ErrorDescription_ contains a description.
+      Warning,                                  // Operation is done. Matrix_ contains a valid result but there is some specific information which can be logged
    };
    struct OperationResult
    {
       OperationResultCode Code_ =               // Type of the result
-         OperationResultCode::NotImplemented;   
+          OperationResultCode::NotImplemented;   
       std::string Description_;            		// Description error/warning/action. It is used on logging.
-      SharedPtr ResultMatrix_;                  // The result of the operation. It equals nullptr if the operation is failed
+      SharedPtr Matrix_;                        // The result of the operation. It equals nullptr if the operation is failed
    };
 
    // -- Constants
    enum : long long
    {
-	  ConstEfficiency = -1,
-	  LogEfficiency = -7,
-	  LinearEfficiency = -100,
-	  QuadraticEfficiency = -10000,
-	  CubicEfficiency = -1000000,
+      ConstEfficiency = -1,
+      LogEfficiency = -7,
+      LinearEfficiency = -100,
+      QuadraticEfficiency = -10000,
+      CubicEfficiency = -1000000,
       UndefinedEfficiency = std::numeric_limits<EfficiencyType>::min(),
    };
 
@@ -82,7 +82,7 @@ public:
    virtual OperationResult Add(const Matrix<ElementType>& /*otherMatrix*/) { return OperationResult(); }
    // Multiplication
    virtual EfficiencyType MultiplyByNumberEfficiency() const { return UndefinedEfficiency; }
-   virtual OperationResult MultiplyByNumber(const T& /*number*/) { return OperationResult(); }
+   virtual OperationResult MultiplyByNumber(const ElementType& /*number*/) { return OperationResult(); }
    virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return UndefinedEfficiency; }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) { return OperationResult(); }
    // Transposition

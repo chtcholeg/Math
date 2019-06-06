@@ -70,7 +70,7 @@ private:
    OperationResult copy()
    {
       OperationResult result;
-      result.ResultMatrix_ = std::make_shared<StandardMatrix<ElementType>>(*this);
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(*this);
       result.Code_ = OperationResultCode::Ok;
       return result;
    }
@@ -87,53 +87,53 @@ private:
       const Matrix<ElementType>& matrix1 = *this;
       const Matrix<ElementType>& matrix2 = otherMatrix;
       auto initFunc = [&matrix1, &matrix2](size_t row, size_t column)->ElementType { return matrix1.Element(row, column) + matrix2.Element(row, column); };
-      result.ResultMatrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
-	  result.Code_ = OperationResult::Ok;
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
+      result.Code_ = OperationResult::Ok;
       return result;
    }
    
    OperationResult multiplyByNumber(const T& number) 
    { 
-       OperationResult result;
-       const Matrix& matrix = *this;
-       auto initFunc = [&matrix, number](size_t row, size_t column)->ElementType { return matrix.Element(row, column) * number; };
-       result.ResultMatrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
-	   result.Code_ = OperationResult::Ok;
-       return result;
+      OperationResult result;
+      const Matrix& matrix = *this;
+      auto initFunc = [&matrix, number](size_t row, size_t column)->ElementType { return matrix.Element(row, column) * number; };
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
+      result.Code_ = OperationResult::Ok;
+      return result;
    }
    
    OperationResult multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) 
    {
-	   OperationResult result;
-	   const Matrix<ElementType>& leftMatrix = anotherMatrixIsOnTheLeft ? anotherMatrix : *this;
-	   const Matrix<ElementType>& rightMatrix = anotherMatrixIsOnTheLeft ? *this : anotherMatrix;
-       CheckIfCanMultiplyTogether(leftMatrix, rightMatrix, result.Code_, result.Description_);
-       if (result.Code_ == OperationResult::Error)
-       {
-            return result;
-       }
-       const size_t numberOfItems = leftMatrix.ColumnCount();
-       auto initFunc = [&leftMatrix, &rightMatrix, numberOfItems](size_t row, size_t column)-> ElementType 
-	                  { 
-					     ElementType result = MatrixSettings<ElementType>::Zero();
-						 for (size_t i = 0; i < numberOfItems; ++i)
-						 {
-							 result += leftMatrix[row][i] * rightMatrix[i][column];
-						 }
-						 return result;
-				      }
-       result.ResultMatrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
-	   result.Code_ = OperationResult::Ok;
-       return result;
+      OperationResult result;
+      const Matrix<ElementType>& leftMatrix = anotherMatrixIsOnTheLeft ? anotherMatrix : *this;
+      const Matrix<ElementType>& rightMatrix = anotherMatrixIsOnTheLeft ? *this : anotherMatrix;
+      CheckIfCanMultiplyTogether(leftMatrix, rightMatrix, result.Code_, result.Description_);
+      if (result.Code_ == OperationResult::Error)
+      {
+         return result;
+      }
+      const size_t numberOfItems = leftMatrix.ColumnCount();
+      auto initFunc = [&leftMatrix, &rightMatrix, numberOfItems](size_t row, size_t column)-> ElementType 
+      { 
+         ElementType result = MatrixSettings<ElementType>::Zero();
+         for (size_t i = 0; i < numberOfItems; ++i)
+         {
+            result += leftMatrix[row][i] * rightMatrix[i][column];
+         }
+         return result;
+      }
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
+      result.Code_ = OperationResult::Ok;
+      return result;
    }
    
    OperationResult transpose()
    {
-	   OperationResult result;
-	   auto initFunc = [this](size_t row, size_t column)->ElementType { return Element(column, row); };
-       result.ResultMatrix_ = std::make_shared<StandardMatrix<ElementType>>(ColumnCount(), RowCount(), initFunc);
-	   result.Code_ = OperationResult::Ok;
-       return result;
+      OperationResult result;
+      auto initFunc = [this](size_t row, size_t column)->ElementType { return Element(column, row); };
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(ColumnCount(), RowCount(), initFunc);
+      result.Code_ = OperationResult::Ok;
+      return result;
    }
 };
 
