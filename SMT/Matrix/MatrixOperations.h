@@ -31,6 +31,20 @@ void CheckIfCanAddTogether(const Matrix<ElementType>& matrix1, const Matrix<Elem
    description.clear();
 }
 
+template <typename ElementType>
+void CheckIfCanMultiplyTogether(const Matrix<ElementType>& leftMatrix, const Matrix<ElementType>& rightMatrix, 
+   /*out*/ Matrix<ElementType>::OperationResultCode& code, /*out*/ std::string& description) const
+{
+   if (leftMatrix.ColumnCount() != rightMatrix.RowCount())
+   {
+      code = OperationResultCode::Error;
+      description = "Matrices that are multiplyed together have a wrong number of column and rows: the left matrix has " + std::to_string(leftMatrix.ColumnCount()) + " column(s), the right matrix has " + std::to_string(rightMatrix.RowCount()) + " row(s)";
+      return;
+   }
+   code = OperationResultCode::Ok;
+   description.clear();
+}	   
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // -- Operations
 template <typename ElementType>
@@ -39,8 +53,38 @@ Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& matrix)
    Matrix<ElementType>::OperationResult result = matrix.Copy();
    if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
    {
-      result.ResultMatrix_ = std::make_shared<StandardMatrix>(matrix);
+      result.ResultMatrix_ = std::make_shared<StandardMatrix<ElementType>>(matrix);
+	  result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+	  result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Copy method. Standard matrix (type:" + result.ResultMatrix_->TypeName() + ") is used instead";
    }
+   else if ((result.Code_ == Matrix<ElementType>::OperationResultCode::Ok) && (result.Description_.empty()))
+   {
+	   result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has been copied.";
+   }   
+   return result;
+}
+template <typename ElementType>
+Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2)
+{
+	const Matrix<ElementType>::EfficiencyType matrix1Efficiency = matrix1.Add(matrix2);
+	const Matrix<ElementType>::EfficiencyType matrix2Efficiency = matrix2.Add(matrix1);
+	const Matrix<ElementType>::EfficiencyType bestEfficiency = std::max<Matrix<ElementType>::EfficiencyType>(matrix1Efficiency, matrix2Efficiency);
+	if (bestEfficiency == Matrix<ElementType>::UndefinedEfficiency)
+	{	
+		StandardMatrix standardMatrixCopy(matrix1);
+		Matrix<ElementType>::OperationResult result = standardMatrixCopy.Add(matrix2);
+		if (result.Code_ == Matrix<ElementType>::OperationResultCode::Ok)
+		{
+			result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+			result.Description_ = "Matrices (1st matrix type :" + matrix1.TypeName() + ", 2nd matrix type:" + matrix2.TypeName() + ") have undefined efficiency.  Standard matrix (type:" + standardMatrixCopy.TypeName() + ") is used instead";
+		}
+		return result;
+	}
+	const Matrix<ElementType>& mainMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix1 : matrix2;
+	const Matrix<ElementType>& addedMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix2 : matrix1;
+	Matrix<ElementType>::OperationResult result = mainMatrix.Add(addedMatrix);
+	if 
+    return result;
 }
 
 

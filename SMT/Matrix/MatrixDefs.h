@@ -21,7 +21,7 @@ class Matrix
 public:
    // -- Type definitions
    using SharedPtr = std::shared_ptr<Matrix>;   // Pointer to matrix
-   using EfficiencyType = long long int;        // Type of algorithm efficiency evaluation
+   using EfficiencyType = long long int;        // Type of algorithm efficiency evaluation. The more value is, the more efficient an algorithm is
    // A result for each matrix operation
    enum class OperationResultCode
    {
@@ -34,14 +34,19 @@ public:
    {
       OperationResultCode Code_ =               // Type of the result
          OperationResultCode::NotImplemented;   
-      std::string ErrorDescription_;            // Description error. It is used on logging.
+      std::string Description_;            		// Description error/warning/action. It is used on logging.
       SharedPtr ResultMatrix_;                  // The result of the operation. It equals nullptr if the operation is failed
    };
 
    // -- Constants
-   enum
+   enum : long long
    {
-      UndefinedEfficiency = 0,
+	  ConstEfficiency = -1,
+	  LogEfficiency = -7,
+	  LinearEfficiency = -100,
+	  QuadraticEfficiency = -10000,
+	  CubicEfficiency = -1000000,
+      UndefinedEfficiency = std::numeric_limits<EfficiencyType>::min(),
    };
 
    // -- Class-specific methods
@@ -57,27 +62,29 @@ public:
    // Access to matrix element.
    // If row >= RowCount() or column >= ColumnCount() behavior is undefined
    virtual ElementType Element(size_t /*row*/, size_t /*column*/) const = 0;
+   // Name of matrix type
+   virtual std::string TypeName() const = 0;
 
    // -- Operations
-   //    All *****Effeciency methods return special coefficient which means: how many times does the computation time increase by if the matrices sizes are increased by 10 times?
+   //    All *****Effeciency methods return special coefficient which means: how many times does the computation time increase by if the matrices sizes are increased by 100 times?
    //    (!) The computation time includes the creation of the result.
    //    Examples:
-   //       1. Increasing of copying/addition time is quadric (depending on the size of matrix). So if we increase matrix size by 10 times the copying/addition time increases by 100 times. So CopyingEfficiency()/AdditionEfficiency() returns 100 by default.
-   //       2. Diagonal matrix represents only by diagonal elements. So if we increase matrix size by 10 times the copying time of diagonal matrix increases by 10 times only. So CopyingEfficiency() returns 10.
-   //       3. Function matrix contains an only function which calculates every element and doesn't contain any matrix data (except size, of course). So if we increase matrix size by 10 times the copying time of diagonal doesn't increase. So CopyingEfficiency() returns 1!
+   //       1. Increasing of copying/addition time is quadric (depending on the size of matrix). So if we increase matrix size by 100 times the copying/addition time increases by 10000 times (usually). So CopyingEfficiency()/AdditionEfficiency() returns 10000 (usually).
+   //       2. Diagonal matrix represents only by diagonal elements. So if we increase matrix size by 100 times the copying time of diagonal matrix increases by 100 times only. So CopyingEfficiency() returns 100.
+   //       3. Function matrix contains an only function which calculates every element and doesn't contain any matrix data (except size, of course). So if we increase matrix size by 100 times the copying time of diagonal doesn't increase. So CopyingEfficiency() returns 1!
    //       4. Zero matrix "knows" that it doesn't change another matrix (another matrix which is involved in the operation with Zero matrix) on addition. So we need to create only a copy of another matrix. So AdditionEfficiency() of zero matrix is equal CopyingEfficiency() of another matrix.
    //    All operations return OperationResult, a structure which contains a result code and a result matrix (if the operation has been done successfully)
    // Copying (deeply)
    virtual EfficiencyType CopyingEfficiency() const { return OperationResult(); }
    virtual OperationResult Copy() const { return OperationResult(); }
    // Addition
-   virtual EfficiencyType AdditionEfficiency(const Matrix& /*otherMatrix*/) { return UndefinedEfficiency; }
-   virtual OperationResult Add(const Matrix& /*otherMatrix*/) { return OperationResult(); }
+   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& /*otherMatrix*/) { return UndefinedEfficiency; }
+   virtual OperationResult Add(const Matrix<ElementType>& /*otherMatrix*/) { return OperationResult(); }
    // Multiplication
    virtual EfficiencyType MultiplyByNumberEfficiency() const { return UndefinedEfficiency; }
    virtual OperationResult MultiplyByNumber(const T& /*number*/) { return OperationResult(); }
-   virtual EfficiencyType MultiplyEfficiency(const Matrix& anotherMatrix, bool anotherMatrixIsOnTheLeft) { return UndefinedEfficiency; }
-   virtual OperationResult Multiply(const Matrix& anotherMatrix, bool anotherMatrixIsOnTheLeft) { return OperationResult(); }
+   virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return UndefinedEfficiency; }
+   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) { return OperationResult(); }
    // Transposition
    virtual EfficiencyType TransposeEfficiency() const { return UndefinedEfficiency; }
    virtual OperationResult Transpose() { return OperationResult(); }
