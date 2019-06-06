@@ -2,8 +2,47 @@
 // The main operations that are related to matrices
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include "MatrixDefs.h"
+#include "StandardMatrix.h"
+
 namespace SMT
 {
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// -- Functions that check if we can do some actions
+// Standard checks
+template <typename ElementType>
+void CheckIfCanAddTogether(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2, 
+   /*out*/ Matrix<ElementType>::OperationResultCode& code, /*out*/ std::string& description) const
+{
+   if (matrix1.RowCount() != matrix2.RowCount())
+   {
+      code = OperationResultCode::Error;
+      description = "Matrices that are added together have a different number of rows.";
+      return;
+   }
+   if (matrix1.ColumnCount() != matrix2.ColumnCount())
+   {
+      code = OperationResultCode::Error;
+      description = "Matrices that are added together have a different number of columns.";
+      return;
+   }
+   code = OperationResultCode::Ok;
+   description.clear();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// -- Operations
+template <typename ElementType>
+Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& matrix)
+{
+   Matrix<ElementType>::OperationResult result = matrix.Copy();
+   if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
+   {
+      result.ResultMatrix_ = std::make_shared<StandardMatrix>(matrix);
+   }
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // -- Predefined matrices
