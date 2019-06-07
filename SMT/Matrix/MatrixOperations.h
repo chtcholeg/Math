@@ -150,6 +150,23 @@ Matrix<ElementType>::OperationResult Multiply(const Matrix<ElementType>& leftMat
    return result;
 }
 
+template <typename ElementType>
+Matrix<ElementType>::OperationResult Transpose(const Matrix<ElementType>& matrix)
+{
+   Matrix<ElementType>::OperationResult result = matrix.Transpose();
+   if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
+   {
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(matrix);
+      result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+      result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Transpose method. Standard matrix (type:" + result.Matrix_->TypeName() + ") is used instead";
+   }
+   else if ((result.Code_ == Matrix<ElementType>::OperationResultCode::Ok) && (result.Description_.empty()))
+   {
+      result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has been transposed.";
+   }
+   return result;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // -- Predefined matrices
 // Square matrix with ones on the main diagonal and zeros elsewhere
