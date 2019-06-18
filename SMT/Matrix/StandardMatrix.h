@@ -1,8 +1,12 @@
+#ifndef __STANDARD_MATRIX_H__
+#define __STANDARD_MATRIX_H__
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Standard matrix
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "MatrixDefs.h"
+#include "MatrixOperations.h"
 
 namespace SMT
 {
@@ -15,12 +19,12 @@ class StandardMatrix : public Matrix<ElementType>
 {
 public:
    using InitFunc = std::function<ElementType (size_t /*column*/, size_t /*row*/)>; // A function which initializes all matrix elements
-   StandardMatrix(size_t rowCount, size_t columnCount, InitFunc initFunc) :
+   StandardMatrix(size_t rowCount, size_t columnCount, InitFunc initFunc)
    {
       assert(initFunc);
       if (!initFunc)
       {
-         const ElementType retValue = MatrixSettings<ElementType>::Zero();
+         const ElementType retValue = MatrixSettings::Zero<ElementType>();
          initFunc = [retValue](size_t /*row*/, size_t /*column*/)->ElementType { return retValue; };
       }
       init(rowCount, columnCount, initFunc);
@@ -35,19 +39,20 @@ public:
    virtual size_t RowCount() const override { return body_.size(); }
    virtual size_t ColumnCount() const override { return body_.empty() ? 0 : body_[0].size(); }
    virtual ElementType Element(size_t row, size_t column) const override { return body_[row][column]; }
+   virtual std::string TypeName() const { return "StandardMatrix"; }
    virtual EfficiencyType CopyingEfficiency() const override { return QuadraticEfficiency; }
    virtual OperationResult Copy() const override { return copy(); }
    virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& otherMatrix) override { return QuadraticEfficiency; }
    virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) override { return add(otherMatrix); }
    virtual EfficiencyType MultiplyByNumberEfficiency() const override { return QuadraticEfficiency; }
-   virtual OperationResult MultiplyByNumber(const T& number) override { return multiplyByNumber(number); }
+   virtual OperationResult MultiplyByNumber(const ElementType& number) override { return multiplyByNumber(number); }
    virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return CubicEfficiency; }
-   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) override { return multiply(number); }
+   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) override { return multiply(anotherMatrix, anotherMatrixIsOnTheLeft); }
    virtual EfficiencyType TransposeEfficiency() const override { return QuadraticEfficiency; }
    virtual OperationResult Transpose() override { return transpose(); }
 
 private:
-   using Row = std::vector<Matrix::T>;
+   using Row = std::vector<ElementType>;
    using Table = std::vector<Row>;
 
 private:
@@ -56,18 +61,18 @@ private:
    void init(size_t rowCount, size_t columnCount, InitFunc initFunc)
    {
       body_.resize(rowCount);
-      for (size_t row = 0; row < rowCount; ++row)
+      for (size_t rowIndex = 0; rowIndex < rowCount; ++rowIndex)
       {
-         auto& row = body_[row];
+         auto& row = body_[rowIndex];
          row.resize(columnCount);
-         for (size_t column = 0; column < columnCount; ++columnCount)
+         for (size_t columnIndex = 0; columnIndex < columnCount; ++columnIndex)
          {
-            row[column] = initFunc(column, row);
+            row[columnIndex] = initFunc(columnIndex, rowIndex);
          }
       }
    }
 
-   OperationResult copy()
+   OperationResult copy() const
    {
       OperationResult result;
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(*this);
@@ -78,8 +83,8 @@ private:
    OperationResult add(const Matrix<ElementType>& otherMatrix)
    {
       OperationResult result;
-      CheckIfCanAddTogether(*this, otherMatrix, result.Code_, result.Description_);
-      if (result.Code_ == OperationResult::Error)
+      CheckIfCanAddTogether<ElementType>(*this, otherMatrix, result.Code_, result.Description_);
+      if (result.Code_ == OperationResultCode::Error)
       {
          return result;
       }
@@ -88,17 +93,17 @@ private:
       const Matrix<ElementType>& matrix2 = otherMatrix;
       auto initFunc = [&matrix1, &matrix2](size_t row, size_t column)->ElementType { return matrix1.Element(row, column) + matrix2.Element(row, column); };
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
-      result.Code_ = OperationResult::Ok;
+      result.Code_ = OperationResultCode::Ok;
       return result;
    }
    
-   OperationResult multiplyByNumber(const T& number) 
+   OperationResult multiplyByNumber(const ElementType& number)
    { 
       OperationResult result;
       const Matrix& matrix = *this;
       auto initFunc = [&matrix, number](size_t row, size_t column)->ElementType { return matrix.Element(row, column) * number; };
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
-      result.Code_ = OperationResult::Ok;
+      result.Code_ = OperationResultCode::Ok;
       return result;
    }
    
@@ -108,22 +113,22 @@ private:
       const Matrix<ElementType>& leftMatrix = anotherMatrixIsOnTheLeft ? anotherMatrix : *this;
       const Matrix<ElementType>& rightMatrix = anotherMatrixIsOnTheLeft ? *this : anotherMatrix;
       CheckIfCanMultiplyTogether(leftMatrix, rightMatrix, result.Code_, result.Description_);
-      if (result.Code_ == OperationResult::Error)
+      if (result.Code_ == OperationResultCode::Error)
       {
          return result;
       }
       const size_t numberOfItems = leftMatrix.ColumnCount();
       auto initFunc = [&leftMatrix, &rightMatrix, numberOfItems](size_t row, size_t column)-> ElementType 
       { 
-         ElementType result = MatrixSettings<ElementType>::Zero();
+         ElementType result = MatrixSettings::Zero<ElementType>();
          for (size_t i = 0; i < numberOfItems; ++i)
          {
-            result += leftMatrix[row][i] * rightMatrix[i][column];
+            result += leftMatrix.Element(row, i) * rightMatrix.Element(i, column);
          }
          return result;
-      }
+      };
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
-      result.Code_ = OperationResult::Ok;
+      result.Code_ = OperationResultCode::Ok;
       return result;
    }
    
@@ -132,41 +137,11 @@ private:
       OperationResult result;
       auto initFunc = [this](size_t row, size_t column)->ElementType { return Element(column, row); };
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(ColumnCount(), RowCount(), initFunc);
-      result.Code_ = OperationResult::Ok;
+      result.Code_ = OperationResultCode::Ok;
       return result;
    }
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// -- Operations
-virtual bool CheckIfIdentityMatrix() const;
-virtual bool CheckIfZeroMatrix() const;
-virtual bool CheckIfDiagonalMatrix() const;
-
-
-template <typename T>
-static Matrix<T>::SharedPtr Matrix<T>::Multiply(const Matrix<T>& matrix1, const Matrix<T>& matrix2)
-{
-   if (matrix1.ColumnCount() != matrix2.RowCount())
-   {
-      assert(false);
-      return nullptr;
-   }
-
-   // Standard multiplication
-   const size_t newRowCount = matrix1.RowCount();
-   const size_t newColumnCount = matrix2.ColumnCount();
-   result = std::make_shared<Matrix>(newRowCount, newColumnCount);
-   for (size_t i = 0; i < newRowCount; ++i)
-   {
-      for (size_t j = 0; j < newColumnCount; ++j)
-      {
-         result->Item(i, j) = calcMultMatrixElement(matrix1, matrix2, i, j);
-      }
-   }
-
-   return result;
-}
-
-
 } // namespace SMT
+
+#endif // __STANDARD_MATRIX_H__

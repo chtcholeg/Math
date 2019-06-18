@@ -81,7 +81,6 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LogDefs.h" />
     <ClInclude Include="Matrix\MatrixDefs.h" />
     <ClInclude Include="Matrix\MatrixOperations.h" />
     <ClInclude Include="Matrix\StandardMatrix.h" />

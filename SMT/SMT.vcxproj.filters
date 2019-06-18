@@ -21,7 +21,6 @@
     <ClInclude Include="Matrix\MatrixOperations.h">
       <Filter>Matrix</Filter>
     </ClInclude>
-    <ClInclude Include="LogDefs.h" />
     <ClInclude Include="Matrix\StandardMatrix.h">
       <Filter>Matrix</Filter>
     </ClInclude>

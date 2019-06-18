@@ -1,3 +1,6 @@
+#ifndef __MATRIX_OPERATIONS_H__
+#define __MATRIX_OPERATIONS_H__
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // The main operations that are related to matrices
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -13,42 +16,42 @@ namespace SMT
 // Standard checks
 template <typename ElementType>
 void CheckIfCanAddTogether(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2, 
-   /*out*/ Matrix<ElementType>::OperationResultCode& code, /*out*/ std::string& description) const
+   /*out*/ typename Matrix<ElementType>::OperationResultCode& code, /*out*/ std::string& description)
 {
    if (matrix1.RowCount() != matrix2.RowCount())
    {
-      code = OperationResultCode::Error;
+      code = Matrix<ElementType>::OperationResultCode::Error;
       description = "Matrices that are added together have a different number of rows.";
       return;
    }
    if (matrix1.ColumnCount() != matrix2.ColumnCount())
    {
-      code = OperationResultCode::Error;
+      code = Matrix<ElementType>::OperationResultCode::Error;
       description = "Matrices that are added together have a different number of columns.";
       return;
    }
-   code = OperationResultCode::Ok;
+   code = Matrix<ElementType>::OperationResultCode::Ok;
    description.clear();
 }
 
 template <typename ElementType>
 void CheckIfCanMultiplyTogether(const Matrix<ElementType>& leftMatrix, const Matrix<ElementType>& rightMatrix, 
-   /*out*/ Matrix<ElementType>::OperationResultCode& code, /*out*/ std::string& description) const
+   /*out*/ typename Matrix<ElementType>::OperationResultCode& code, /*out*/ std::string& description)
 {
    if (leftMatrix.ColumnCount() != rightMatrix.RowCount())
    {
-      code = OperationResultCode::Error;
+      code = Matrix<ElementType>::OperationResultCode::Error;
       description = "Matrices that are multiplyed together have a wrong number of column and rows: the left matrix has " + std::to_string(leftMatrix.ColumnCount()) + " column(s), the right matrix has " + std::to_string(rightMatrix.RowCount()) + " row(s)";
       return;
    }
-   code = OperationResultCode::Ok;
+   code = Matrix<ElementType>::OperationResultCode::Ok;
    description.clear();
 }	   
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // -- Operations
 template <typename ElementType>
-Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& matrix)
+typename Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& matrix)
 {
    Matrix<ElementType>::OperationResult result = matrix.Copy();
    if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
@@ -65,7 +68,7 @@ Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& matrix)
 }
 
 template <typename ElementType>
-Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2)
+typename Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2)
 {
 	const Matrix<ElementType>::EfficiencyType matrix1Efficiency = matrix1.AddEfficiency(matrix2);
    const Matrix<ElementType>::EfficiencyType matrix2Efficiency = matrix2.AddEfficiency(matrix1);
@@ -96,7 +99,7 @@ Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& matrix1, con
 }
 
 template <typename ElementType>
-Matrix<ElementType>::OperationResult MultiplyByNumber(const Matrix<ElementType>& matrix, const ElementType& number)
+typename Matrix<ElementType>::OperationResult MultiplyByNumber(const Matrix<ElementType>& matrix, const ElementType& number)
 {
    Matrix<ElementType>::OperationResult result = matrix.MultiplyByNumber(number);
    if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
@@ -119,7 +122,7 @@ Matrix<ElementType>::OperationResult MultiplyByNumber(const Matrix<ElementType>&
 }
 
 template <typename ElementType>
-Matrix<ElementType>::OperationResult Multiply(const Matrix<ElementType>& leftMatrix, const Matrix<ElementType>& rightMatrix)
+typename Matrix<ElementType>::OperationResult Multiply(const Matrix<ElementType>& leftMatrix, const Matrix<ElementType>& rightMatrix)
 {
    const Matrix<ElementType>::EfficiencyType leftMatrixEfficiency = leftMatrix.MultiplyEfficiency(rightMatrix, false);
    const Matrix<ElementType>::EfficiencyType rightMatrixEfficiency = rightMatrix.MultiplyEfficiency(leftMatrix, true);
@@ -151,7 +154,7 @@ Matrix<ElementType>::OperationResult Multiply(const Matrix<ElementType>& leftMat
 }
 
 template <typename ElementType>
-Matrix<ElementType>::OperationResult Transpose(const Matrix<ElementType>& matrix)
+typename Matrix<ElementType>::OperationResult Transpose(const Matrix<ElementType>& matrix)
 {
    Matrix<ElementType>::OperationResult result = matrix.Transpose();
    if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
@@ -168,80 +171,60 @@ Matrix<ElementType>::OperationResult Transpose(const Matrix<ElementType>& matrix
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// -- Predefined matrices
-// Square matrix with ones on the main diagonal and zeros elsewhere
-Matrix::SharedPtr CreateIdentityMatrix(size_t size);
-// Matrix in which the entries outside the main diagonal are all zero
-Matrix::SharedPtr CreateDiagonalMatrix(const std::vector<Matrix::T>& diagonalElements);
-Matrix::SharedPtr CreateDiagonalMatrix(std::vector<Matrix::T>&& diagonalElements);
-template<typename InputIterator>
-Matrix::SharedPtr CreateDiagonalMatrix(InputIterator begin, InputIterator end) { DiagonalMatrix(std::vector<Matrix::T>(begin, end)); }
-// Matrix all of whose entries are zero
-Matrix::SharedPtr CreateZeroMatrix(size_t rowCount, size_t columnCount);
-// Matrix all of whose entries are one
-Matrix::SharedPtr CreateOneMatrix(size_t rowCount, size_t columnCount);
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Standard matrix.
-// It represents as a vector of vectors.
-// Very simple but not optimized.
-template <typename ElementType = double>
-class StandardMatrix : public Matrix<ElementType>
+// -- Functions that check matrix settings
+// Function moves through all elements and checks
+template <typename ElementType>
+bool Check(const Matrix<ElementType>& matrix, bool(*predicate)(size_t column, size_t row, ElementType element))
 {
-public:
-   using InitFunc = std::function<ElementType (size_t /*column*/, size_t /*row*/)>; // A function which initializes all matrix elements
-   StandardMatrix(size_t rowCount, size_t columnCount, InitFunc initFunc);
-
-   // Matrix
-   virtual size_t RowCount() const override { return rowCount_; }
-   virtual size_t ColumnCount() const override { return columnCount_; }
-   virtual T Element(size_t row, size_t column) const override;
-   virtual bool Add(const Matrix& /*otherMatrix*/) override;
-   virtual bool Multiply(const T& /*number*/) override;
-   virtual bool LMultiply(const Matrix& /*leftMatrix*/) override;
-   virtual bool RMultiply(const Matrix& /*rightMatrix*/) override;
-   virtual bool Transpose() override;
-
-private:
-   using Row = std::vector<Matrix::T>;
-   using Table = std::vector<Row>;
-
-private:
-   size_t rowCount_;
-   size_t columnCount_;
-   Table body_;
-};
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// -- Operations
-virtual bool CheckIfIdentityMatrix() const;
-virtual bool CheckIfZeroMatrix() const;
-virtual bool CheckIfDiagonalMatrix() const;
-
-
-template <typename T>
-static Matrix<T>::SharedPtr Matrix<T>::Multiply(const Matrix<T>& matrix1, const Matrix<T>& matrix2)
-{
-   if (matrix1.ColumnCount() != matrix2.RowCount())
+   if (!func)
    {
-      assert(false);
-      return nullptr;
+      return false;
    }
-
-   // Standard multiplication
-   const size_t newRowCount = matrix1.RowCount();
-   const size_t newColumnCount = matrix2.ColumnCount();
-   result = std::make_shared<Matrix>(newRowCount, newColumnCount);
-   for (size_t i = 0; i < newRowCount; ++i)
+   const size_t rowCount = matrix.RowCount();
+   const size_t columnCount = matrix.ColumnCount();
+   for (size_t row = 0; row < rowCount; ++row)
    {
-      for (size_t j = 0; j < newColumnCount; ++j)
+      for (size_t column = 0; column < columnCount; ++column)
       {
-         result->Item(i, j) = calcMultMatrixElement(matrix1, matrix2, i, j);
-      }
+         if (!predicate(row, count, matrix.Element(row, count)))
+         {
+            return false;
+         }
+     }
    }
-
-   return result;
+   return true;
 }
 
+// Standard checks
+template <typename ElementType>
+bool CheckIfIdentityMatrix(const Matrix<ElementType>& matrix)
+{
+   auto isIdentityMatrixElement = [](size_t column, size_t row, ElementType element)
+   {
+      const ElementType requiredElement = (column == row) ? MatrixSettings::One<ElementType>() : MatrixSettings::Zero<ElementType>();
+      return MatrixSettings<ElementType>::CanAssumeItIsZero(requiredElement - element);
+   };
+   return Check(matrix, isIdentityMatrixElement);
+}
+template <typename ElementType>
+bool CheckIfZeroMatrix()
+{
+   auto isZeroMatrixElement = [](size_t /*column*/, size_t /*row*/, ElementType element)
+   {
+      return MatrixSettings::CanAssumeItIsZero<ElementType>(element);
+   };
+   return Check(matrix, isZeroMatrixElement);
+}
+template <typename ElementType>
+bool CheckIfDiagonalMatrix()
+{
+   auto isDiaginalMatrixElement = [](size_t column, size_t row, ElementType element)
+   {
+      return column == row ? true : MatrixSettings::CanAssumeItIsZero<ElementType>(element);
+   };
+   return Check(matrix, isDiaginalMatrixElement);
+}
 
 } // namespace SMT
+
+#endif __MATRIX_OPERATIONS_H__

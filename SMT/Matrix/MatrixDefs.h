@@ -1,3 +1,6 @@
+#ifndef __MATRIX_DEFS_H__
+#define __MATRIX_DEFS_H__
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // The main objects that are related to matrices
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -6,9 +9,8 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
-
-#include "../LogDefs.h"
 
 namespace SMT
 {
@@ -46,7 +48,7 @@ public:
       LinearEfficiency = -100,
       QuadraticEfficiency = -10000,
       CubicEfficiency = -1000000,
-      UndefinedEfficiency = std::numeric_limits<EfficiencyType>::min(),
+      UndefinedEfficiency = LLONG_MIN,
    };
 
    // -- Class-specific methods
@@ -75,7 +77,7 @@ public:
    //       4. Zero matrix "knows" that it doesn't change another matrix (another matrix which is involved in the operation with Zero matrix) on addition. So we need to create only a copy of another matrix. So AdditionEfficiency() of zero matrix is equal CopyingEfficiency() of another matrix.
    //    All operations return OperationResult, a structure which contains a result code and a result matrix (if the operation has been done successfully)
    // Copying (deeply)
-   virtual EfficiencyType CopyingEfficiency() const { return OperationResult(); }
+   virtual EfficiencyType CopyingEfficiency() const { return UndefinedEfficiency; }
    virtual OperationResult Copy() const { return OperationResult(); }
    // Addition
    virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& /*otherMatrix*/) { return UndefinedEfficiency; }
@@ -92,14 +94,20 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Main matrix settings. 
-// Class has to be specialized if you want another behavior.
-template <typename ElementType>
-struct MatrixSettings
+namespace MatrixSettings
 {
-   static ElementType Zero() { return static_cast<ElementType>(0); }
-   static ElementType One() { return static_cast<ElementType>(1); };
-   template<class T> static typename std::enable_if<std::is_floating_point<ElementType>::value, ElementType>::type Epsilon() { return std::numeric_limits<ElementType>::epsilon(); }
-   template<class T> static typename std::enable_if<std::is_integral<ElementType>::value, ElementType>::type Epsilon() { return Zero(); }
-   static bool CanAssumeItIsZero(const ElementType& element) { return std::abs<ElementType>(element - Zero()) < Epsilon(); }
-};
+template <typename ElementType>
+   ElementType Zero() { return static_cast<ElementType>(0); }
+template <typename ElementType>
+   ElementType One() { return static_cast<ElementType>(1); }
+template <typename ElementType>
+   typename std::enable_if<std::is_integral<ElementType>::value, ElementType>::type Epsilon() { return Zero<ElementType>(); }
+template <typename ElementType>
+   typename std::enable_if<std::is_floating_point<ElementType>::value, ElementType>::type Epsilon() { return std::numeric_limits<ElementType>::epsilon(); }
+template <typename ElementType>
+   bool CanAssumeItIsZero(const ElementType& element) { return std::abs<ElementType>(element - Zero<ElementType>()) <= Epsilon<ElementType>(); }
+} // namespace MatrixSettings
+
 } // namespace SMT
+
+#endif // __MATRIX_DEFS_H__
