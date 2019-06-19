@@ -15,6 +15,16 @@
 namespace SMT
 {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// A type of result for each matrix operation
+enum class OperationResultCode
+{
+   Ok,                                       // Operation is successfully done
+   NotImplemented,                           // Operation is not implemented in the inherited class
+   Error,                                    // Operation can't be done. Matrix_ is not valid! OperationResult::ErrorDescription_ contains a description.
+   Warning,                                  // Operation is done. Matrix_ contains a valid result but there is some specific information which can be logged
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Base class for matrices.
 // All specific matrices have to be inherited from this class.
 template <typename ElementType>
@@ -25,13 +35,6 @@ public:
    using SharedPtr = std::shared_ptr<Matrix>;   // Pointer to matrix
    using EfficiencyType = long long int;        // Type of algorithm efficiency evaluation. The more value is, the more efficient an algorithm is
    // A result for each matrix operation
-   enum class OperationResultCode
-   {
-      Ok,                                       // Operation is successfully done
-      NotImplemented,                           // Operation is not implemented in the inherited class
-      Error,                                    // Operation can't be done. Matrix_ is not valid! OperationResult::ErrorDescription_ contains a description.
-      Warning,                                  // Operation is done. Matrix_ contains a valid result but there is some specific information which can be logged
-   };
    struct OperationResult
    {
       OperationResultCode Code_ =               // Type of the result
@@ -80,16 +83,16 @@ public:
    virtual EfficiencyType CopyingEfficiency() const { return UndefinedEfficiency; }
    virtual OperationResult Copy() const { return OperationResult(); }
    // Addition
-   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& /*otherMatrix*/) { return UndefinedEfficiency; }
-   virtual OperationResult Add(const Matrix<ElementType>& /*otherMatrix*/) { return OperationResult(); }
+   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& /*otherMatrix*/) const { return UndefinedEfficiency; }
+   virtual OperationResult Add(const Matrix<ElementType>& /*otherMatrix*/) const { return OperationResult(); }
    // Multiplication
    virtual EfficiencyType MultiplyByNumberEfficiency() const { return UndefinedEfficiency; }
-   virtual OperationResult MultiplyByNumber(const ElementType& /*number*/) { return OperationResult(); }
+   virtual OperationResult MultiplyByNumber(const ElementType& /*number*/) const { return OperationResult(); }
    virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return UndefinedEfficiency; }
-   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) { return OperationResult(); }
+   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return OperationResult(); }
    // Transposition
    virtual EfficiencyType TransposeEfficiency() const { return UndefinedEfficiency; }
-   virtual OperationResult Transpose() { return OperationResult(); }
+   virtual OperationResult Transpose() const { return OperationResult(); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

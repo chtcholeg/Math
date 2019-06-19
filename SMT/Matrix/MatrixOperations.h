@@ -5,6 +5,8 @@
 // The main operations that are related to matrices
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>
+
 #include "MatrixDefs.h"
 #include "StandardMatrix.h"
 
@@ -16,35 +18,35 @@ namespace SMT
 // Standard checks
 template <typename ElementType>
 void CheckIfCanAddTogether(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2, 
-   /*out*/ typename Matrix<ElementType>::OperationResultCode& code, /*out*/ std::string& description)
+   /*out*/ typename OperationResultCode& code, /*out*/ std::string& description)
 {
    if (matrix1.RowCount() != matrix2.RowCount())
    {
-      code = Matrix<ElementType>::OperationResultCode::Error;
+      code = OperationResultCode::Error;
       description = "Matrices that are added together have a different number of rows.";
       return;
    }
    if (matrix1.ColumnCount() != matrix2.ColumnCount())
    {
-      code = Matrix<ElementType>::OperationResultCode::Error;
+      code = OperationResultCode::Error;
       description = "Matrices that are added together have a different number of columns.";
       return;
    }
-   code = Matrix<ElementType>::OperationResultCode::Ok;
+   code = OperationResultCode::Ok;
    description.clear();
 }
 
 template <typename ElementType>
 void CheckIfCanMultiplyTogether(const Matrix<ElementType>& leftMatrix, const Matrix<ElementType>& rightMatrix, 
-   /*out*/ typename Matrix<ElementType>::OperationResultCode& code, /*out*/ std::string& description)
+   /*out*/ typename OperationResultCode& code, /*out*/ std::string& description)
 {
    if (leftMatrix.ColumnCount() != rightMatrix.RowCount())
    {
-      code = Matrix<ElementType>::OperationResultCode::Error;
+      code = OperationResultCode::Error;
       description = "Matrices that are multiplyed together have a wrong number of column and rows: the left matrix has " + std::to_string(leftMatrix.ColumnCount()) + " column(s), the right matrix has " + std::to_string(rightMatrix.RowCount()) + " row(s)";
       return;
    }
-   code = Matrix<ElementType>::OperationResultCode::Ok;
+   code = OperationResultCode::Ok;
    description.clear();
 }	   
 
@@ -54,13 +56,13 @@ template <typename ElementType>
 typename Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& matrix)
 {
    Matrix<ElementType>::OperationResult result = matrix.Copy();
-   if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
+   if (result.Code_ == OperationResultCode::NotImplemented)
    {
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(matrix);
-      result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+      result.Code_ = OperationResultCode::Warning;
       result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Copy method. Standard matrix (type:" + result.Matrix_->TypeName() + ") is used instead";
    }
-   else if ((result.Code_ == Matrix<ElementType>::OperationResultCode::Ok) && (result.Description_.empty()))
+   else if ((result.Code_ == OperationResultCode::Ok) && (result.Description_.empty()))
    {
 	   result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has been copied.";
    }   
@@ -89,9 +91,9 @@ typename Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& mat
    }
    StandardMatrix standardMatrixCopy(matrix1);
    Matrix<ElementType>::OperationResult result = standardMatrixCopy.Add(matrix2);
-   if (result.Code_ == Matrix<ElementType>::OperationResultCode::Ok)
+   if (result.Code_ == OperationResultCode::Ok)
    {
-      result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+      result.Code_ = OperationResultCode::Warning;
       if (!result.Description_.empty())
          result.Description_ = "Matrices (1st matrix type :" + matrix1.TypeName() + ", 2nd matrix type:" + matrix2.TypeName() + ") can't be added together.  Standard matrix (type:" + standardMatrixCopy.TypeName() + ") is used instead";
    }
@@ -102,19 +104,19 @@ template <typename ElementType>
 typename Matrix<ElementType>::OperationResult MultiplyByNumber(const Matrix<ElementType>& matrix, const ElementType& number)
 {
    Matrix<ElementType>::OperationResult result = matrix.MultiplyByNumber(number);
-   if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
+   if (result.Code_ == OperationResultCode::NotImplemented)
    {
       const StandardMatrix<ElementType> standardMatrixCopy(matrix);
       result = standardMatrixCopy.MultiplyByNumber(number);
-      if (result.Code_ == Matrix<ElementType>::OperationResultCode::Ok)
+      if (result.Code_ == OperationResultCode::Ok)
       {
-         result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+         result.Code_ = OperationResultCode::Warning;
          result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no MultiplyByNumber method. Standard matrix (type:" + result.Matrix_->TypeName() + ") is used instead";
          return result;
       }
    }
    
-   if ((result.Code_ == Matrix<ElementType>::OperationResultCode::Ok) && (result.Description_.empty()))
+   if ((result.Code_ == OperationResultCode::Ok) && (result.Description_.empty()))
    {
       result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has been multiplied by number.";
    }
@@ -132,21 +134,21 @@ typename Matrix<ElementType>::OperationResult Multiply(const Matrix<ElementType>
       const Matrix<ElementType>& mainMatrix = (leftMatrixEfficiency >= rightMatrixEfficiency) ? leftMatrix : rightMatrix;
       const Matrix<ElementType>& anotherMatrix = (leftMatrixEfficiency >= rightMatrixEfficiency) ? rightMatrix : leftMatrix;
       const bool anotherMatrixIsOnTheLeft = (leftMatrixEfficiency < rightMatrixEfficiency);
-      const Matrix<ElementType>::OperationResult result = mainMatrix.Multiply(anotherMatrix, anotherMatrixIsOnTheLeft);
-      if ((result.Code_ == Matrix<ElementType>::Ok || result.Code_ == Matrix<ElementType>::Warning) && (result.Matrix_ != nullptr))
+      Matrix<ElementType>::OperationResult result = mainMatrix.Multiply(anotherMatrix, anotherMatrixIsOnTheLeft);
+      if ((result.Code_ == OperationResultCode::Ok || result.Code_ == OperationResultCode::Warning) && (result.Matrix_ != nullptr))
       {
          if (result.Description_.empty())
          {
-            result.Description_ = "Matrices (1st matrix type :" + matrix1.TypeName() + ", 2nd matrix type:" + matrix2.TypeName() + ") are multiplied";
+            result.Description_ = "Matrices (1st matrix type :" + mainMatrix.TypeName() + ", 2nd matrix type:" + anotherMatrix.TypeName() + ") are multiplied";
          }
          return result;
       }
    }
-   StandardMatrix standardMatrixCopy(leftMatrix);
+   StandardMatrix<double> standardMatrixCopy(leftMatrix);
    Matrix<ElementType>::OperationResult result = standardMatrixCopy.Multiply(rightMatrix, false);
-   if (result.Code_ == Matrix<ElementType>::OperationResultCode::Ok)
+   if (result.Code_ == OperationResultCode::Ok)
    {
-      result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+      result.Code_ = OperationResultCode::Warning;
       if (result.Description_.empty())
          result.Description_ = "Matrices (1st matrix type :" + leftMatrix.TypeName() + ", 2nd matrix type:" + rightMatrix.TypeName() + ") can't be multiplied together.  Standard matrix (type:" + standardMatrixCopy.TypeName() + ") is used instead";
    }
@@ -157,13 +159,13 @@ template <typename ElementType>
 typename Matrix<ElementType>::OperationResult Transpose(const Matrix<ElementType>& matrix)
 {
    Matrix<ElementType>::OperationResult result = matrix.Transpose();
-   if (result.Code_ == Matrix<ElementType>::OperationResultCode::NotImplemented)
+   if (result.Code_ == OperationResultCode::NotImplemented)
    {
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(matrix);
-      result.Code_ = Matrix<ElementType>::OperationResultCode::Warning;
+      result.Code_ = OperationResultCode::Warning;
       result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Transpose method. Standard matrix (type:" + result.Matrix_->TypeName() + ") is used instead";
    }
-   else if ((result.Code_ == Matrix<ElementType>::OperationResultCode::Ok) && (result.Description_.empty()))
+   else if ((result.Code_ == OperationResultCode::Ok) && (result.Description_.empty()))
    {
       result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has been transposed.";
    }

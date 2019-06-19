@@ -31,7 +31,7 @@ public:
    }
    explicit StandardMatrix(const Matrix<ElementType>& sourceMatrix)
    {
-      initFunc = [&sourceMatrix](size_t row, size_t column)->ElementType { return sourceMatrix.Element(row, column); };
+      auto initFunc = [&sourceMatrix](size_t row, size_t column)->ElementType { return sourceMatrix.Element(row, column); };
       init(sourceMatrix.RowCount(), sourceMatrix.ColumnCount(), initFunc);
    }
 
@@ -42,14 +42,14 @@ public:
    virtual std::string TypeName() const { return "StandardMatrix"; }
    virtual EfficiencyType CopyingEfficiency() const override { return QuadraticEfficiency; }
    virtual OperationResult Copy() const override { return copy(); }
-   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& otherMatrix) override { return QuadraticEfficiency; }
-   virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) override { return add(otherMatrix); }
+   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& otherMatrix) const override{ return QuadraticEfficiency; }
+   virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) const override{ return add(otherMatrix); }
    virtual EfficiencyType MultiplyByNumberEfficiency() const override { return QuadraticEfficiency; }
-   virtual OperationResult MultiplyByNumber(const ElementType& number) override { return multiplyByNumber(number); }
+   virtual OperationResult MultiplyByNumber(const ElementType& number) const override{ return multiplyByNumber(number); }
    virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return CubicEfficiency; }
-   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) override { return multiply(anotherMatrix, anotherMatrixIsOnTheLeft); }
+   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return multiply(anotherMatrix, anotherMatrixIsOnTheLeft); }
    virtual EfficiencyType TransposeEfficiency() const override { return QuadraticEfficiency; }
-   virtual OperationResult Transpose() override { return transpose(); }
+   virtual OperationResult Transpose() const override{ return transpose(); }
 
 private:
    using Row = std::vector<ElementType>;
@@ -67,7 +67,7 @@ private:
          row.resize(columnCount);
          for (size_t columnIndex = 0; columnIndex < columnCount; ++columnIndex)
          {
-            row[columnIndex] = initFunc(columnIndex, rowIndex);
+            row[columnIndex] = initFunc(rowIndex, columnIndex);
          }
       }
    }
@@ -80,7 +80,7 @@ private:
       return result;
    }
 
-   OperationResult add(const Matrix<ElementType>& otherMatrix)
+   OperationResult add(const Matrix<ElementType>& otherMatrix) const
    {
       OperationResult result;
       CheckIfCanAddTogether<ElementType>(*this, otherMatrix, result.Code_, result.Description_);
@@ -97,7 +97,7 @@ private:
       return result;
    }
    
-   OperationResult multiplyByNumber(const ElementType& number)
+   OperationResult multiplyByNumber(const ElementType& number) const
    { 
       OperationResult result;
       const Matrix& matrix = *this;
@@ -107,7 +107,7 @@ private:
       return result;
    }
    
-   OperationResult multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) 
+   OperationResult multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const
    {
       OperationResult result;
       const Matrix<ElementType>& leftMatrix = anotherMatrixIsOnTheLeft ? anotherMatrix : *this;
@@ -127,12 +127,12 @@ private:
          }
          return result;
       };
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(leftMatrix.RowCount(), rightMatrix.ColumnCount(), initFunc);
       result.Code_ = OperationResultCode::Ok;
       return result;
    }
    
-   OperationResult transpose()
+   OperationResult transpose() const
    {
       OperationResult result;
       auto initFunc = [this](size_t row, size_t column)->ElementType { return Element(column, row); };
