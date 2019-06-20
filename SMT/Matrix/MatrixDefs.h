@@ -24,6 +24,20 @@ enum class OperationResultCode
    Warning,                                  // Operation is done. Matrix_ contains a valid result but there is some specific information which can be logged
 };
 
+// Efficiency
+using EfficiencyType = long long;
+struct Efficiency
+{
+   enum : EfficiencyType {
+      Const = -1,
+      Log = -7,
+      Linear = -100,
+      Quadratic = -10000,
+      Cubic = -1000000,
+      Undefined = LLONG_MIN,
+   }
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Base class for matrices.
 // All specific matrices have to be inherited from this class.
@@ -41,17 +55,6 @@ public:
           OperationResultCode::NotImplemented;   
       std::string Description_;            		// Description error/warning/action. It is used on logging.
       SharedPtr Matrix_;                        // The result of the operation. It equals nullptr if the operation is failed
-   };
-
-   // -- Constants
-   enum : long long
-   {
-      ConstEfficiency = -1,
-      LogEfficiency = -7,
-      LinearEfficiency = -100,
-      QuadraticEfficiency = -10000,
-      CubicEfficiency = -1000000,
-      UndefinedEfficiency = LLONG_MIN,
    };
 
    // -- Class-specific methods
@@ -80,18 +83,18 @@ public:
    //       4. Zero matrix "knows" that it doesn't change another matrix (another matrix which is involved in the operation with Zero matrix) on addition. So we need to create only a copy of another matrix. So AdditionEfficiency() of zero matrix is equal CopyingEfficiency() of another matrix.
    //    All operations return OperationResult, a structure which contains a result code and a result matrix (if the operation has been done successfully)
    // Copying (deeply)
-   virtual EfficiencyType CopyingEfficiency() const { return UndefinedEfficiency; }
+   virtual EfficiencyType CopyingEfficiency() const { return Efficiency::Undefined; }
    virtual OperationResult Copy() const { return OperationResult(); }
    // Addition
-   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& /*otherMatrix*/) const { return UndefinedEfficiency; }
+   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& /*otherMatrix*/) const { return Efficiency::Undefined; }
    virtual OperationResult Add(const Matrix<ElementType>& /*otherMatrix*/) const { return OperationResult(); }
    // Multiplication
-   virtual EfficiencyType MultiplyByNumberEfficiency() const { return UndefinedEfficiency; }
+   virtual EfficiencyType MultiplyByNumberEfficiency() const { return Efficiency::Undefined; }
    virtual OperationResult MultiplyByNumber(const ElementType& /*number*/) const { return OperationResult(); }
-   virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return UndefinedEfficiency; }
+   virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return Efficiency::Undefined; }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return OperationResult(); }
    // Transposition
-   virtual EfficiencyType TransposeEfficiency() const { return UndefinedEfficiency; }
+   virtual EfficiencyType TransposeEfficiency() const { return Efficiency::Undefined; }
    virtual OperationResult Transpose() const { return OperationResult(); }
 };
 

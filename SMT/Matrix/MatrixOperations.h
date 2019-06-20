@@ -75,7 +75,7 @@ typename Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& mat
 	const Matrix<ElementType>::EfficiencyType matrix1Efficiency = matrix1.AddEfficiency(matrix2);
    const Matrix<ElementType>::EfficiencyType matrix2Efficiency = matrix2.AddEfficiency(matrix1);
 	const Matrix<ElementType>::EfficiencyType bestEfficiency = std::max<Matrix<ElementType>::EfficiencyType>(matrix1Efficiency, matrix2Efficiency);
-	if (bestEfficiency != Matrix<ElementType>::UndefinedEfficiency)
+	if (bestEfficiency != Matrix<ElementType>::Efficiency::Undefined)
 	{	
       const Matrix<ElementType>& mainMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix1 : matrix2;
       const Matrix<ElementType>& addedMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix2 : matrix1;
@@ -129,7 +129,7 @@ typename Matrix<ElementType>::OperationResult Multiply(const Matrix<ElementType>
    const Matrix<ElementType>::EfficiencyType leftMatrixEfficiency = leftMatrix.MultiplyEfficiency(rightMatrix, false);
    const Matrix<ElementType>::EfficiencyType rightMatrixEfficiency = rightMatrix.MultiplyEfficiency(leftMatrix, true);
    const Matrix<ElementType>::EfficiencyType bestEfficiency = std::max<Matrix<ElementType>::EfficiencyType>(leftMatrixEfficiency, rightMatrixEfficiency);
-   if (bestEfficiency != Matrix<ElementType>::UndefinedEfficiency)
+   if (bestEfficiency != Matrix<ElementType>::Efficiency::Undefined)
    {
       const Matrix<ElementType>& mainMatrix = (leftMatrixEfficiency >= rightMatrixEfficiency) ? leftMatrix : rightMatrix;
       const Matrix<ElementType>& anotherMatrix = (leftMatrixEfficiency >= rightMatrixEfficiency) ? rightMatrix : leftMatrix;

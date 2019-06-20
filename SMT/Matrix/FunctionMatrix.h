@@ -18,58 +18,45 @@ class FunctionMatrix : public Matrix<ElementType>
 {
 public:
    using ElementFunc = std::function<ElementType (size_t /*column*/, size_t /*row*/)>; // A function which defines this matrix
-   FunctionMatrix(size_t rowCount, size_t columnCount, const ElementFunc& elementFunc = ElementFunc(), long long efficiency = ConstEfficiency) 
-       : efficiency_(efficiency)
-	   , func_(elementFunc)
+   FunctionMatrix(size_t rowCount, size_t columnCount, const ElementFunc& elementFunc = ElementFunc(), EfficiencyType efficiency = Efficiency::Const)
+      : rowCount_(rowCount)
+      , columnCount_(columnCount)
+      , efficiency_(efficiency)
+      , func_(elementFunc)
    {
-      if (!func_) {
-         const ElementType retValue = MatrixSettings::Zero<ElementType>();
-         func_ = [retValue](size_t /*row*/, size_t /*column*/)->ElementType { return retValue; };
-      }
+      setZeroFuncIfEmpy();
    }
-   explicit FunctionMatrix(const Matrix<ElementType>& sourceMatrix)
+   FunctionMatrix(const FunctionMatrix<ElementType>& sourceMatrix)
+      : rowCount_(sourceMatrix.rowCount_)
+      , columnCount_(sourceMatrix.columnCount_)
+      , efficiency_(sourceMatrix.efficiency_)
+      , func_(sourceMatrix.func_)
    {
-      auto initFunc = [&sourceMatrix](size_t row, size_t column)->ElementType { return sourceMatrix.Element(row, column); };
-      init(sourceMatrix.RowCount(), sourceMatrix.ColumnCount(), initFunc);
+      assert(func_);
+      setZeroFuncIfEmpy();
    }
 
    // Matrix
-   virtual size_t RowCount() const override { return body_.size(); }
-   virtual size_t ColumnCount() const override { return body_.empty() ? 0 : body_[0].size(); }
-   virtual ElementType Element(size_t row, size_t column) const override { return body_[row][column]; }
+   virtual size_t RowCount() const override { return rowCount_; }
+   virtual size_t ColumnCount() const override { return columnCount_; }
+   virtual ElementType Element(size_t row, size_t column) const override { return func_(row, column); }
    virtual std::string TypeName() const { return "FunctionMatrix"; }
-   virtual EfficiencyType CopyingEfficiency() const override { return QuadraticEfficiency; }
+   virtual EfficiencyType CopyingEfficiency() const override { return Efficiency::Const; }
    virtual OperationResult Copy() const override { return copy(); }
-   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& otherMatrix) const override{ return QuadraticEfficiency; }
+   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& otherMatrix) const override { return additionEfficiency(otherMatrix); }
    virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) const override{ return add(otherMatrix); }
-   virtual EfficiencyType MultiplyByNumberEfficiency() const override { return QuadraticEfficiency; }
+   virtual EfficiencyType MultiplyByNumberEfficiency() const override { return Efficiency::Const; }
    virtual OperationResult MultiplyByNumber(const ElementType& number) const override{ return multiplyByNumber(number); }
-   virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return CubicEfficiency; }
+   virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return multiplicationEfficiency(anotherMatrix, anotherMatrixIsOnTheLeft); }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return multiply(anotherMatrix, anotherMatrixIsOnTheLeft); }
-   virtual EfficiencyType TransposeEfficiency() const override { return QuadraticEfficiency; }
+   virtual EfficiencyType TransposeEfficiency() const override { return Efficiency::Const; }
    virtual OperationResult Transpose() const override{ return transpose(); }
 
 private:
-   using Row = std::vector<ElementType>;
-   using Table = std::vector<Row>;
-
-private:
+   size_t rowCount_;
+   size_t columnCount_;
    EfficiencyType efficiency_;			// Efficiency of this function (it can be combination of function)
    ElementFunc func_;
-
-   void init(size_t rowCount, size_t columnCount, InitFunc initFunc)
-   {
-      body_.resize(rowCount);
-      for (size_t rowIndex = 0; rowIndex < rowCount; ++rowIndex)
-      {
-         auto& row = body_[rowIndex];
-         row.resize(columnCount);
-         for (size_t columnIndex = 0; columnIndex < columnCount; ++columnIndex)
-         {
-            row[columnIndex] = initFunc(rowIndex, columnIndex);
-         }
-      }
-   }
 
    OperationResult copy() const
    {
@@ -138,6 +125,14 @@ private:
       result.Matrix_ = std::make_shared<FunctionMatrix<ElementType>>(ColumnCount(), RowCount(), initFunc);
       result.Code_ = OperationResultCode::Ok;
       return result;
+   }
+
+   void setZeroFuncIfEmpy()
+   {
+      if (!func_) {
+         const ElementType retValue = MatrixSettings::Zero<ElementType>();
+         func_ = [retValue](size_t /*row*/, size_t /*column*/)->ElementType { return retValue; };
+      }
    }
 };
 
