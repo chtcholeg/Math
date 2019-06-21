@@ -35,6 +35,44 @@ public:
       init(sourceMatrix.RowCount(), sourceMatrix.ColumnCount(), initFunc);
    }
 
+   static OperationResult Add(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2)
+   {
+	  OperationResult result;
+      CheckIfCanAddTogether<ElementType>(matrix1, matrix2, result.Code_, result.Description_);
+      if (result.Code_ == OperationResultCode::Error)
+      {
+         return result;
+      }
+	  
+	  auto initFunc = [&matrix1, &matrix2](size_t row, size_t column)->ElementType { return matrix1.Element(row, column) + matrix2.Element(row, column); };
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(matrix1.RowCount(), matrix1.ColumnCount(), initFunc);
+      result.Code_ = OperationResultCode::Ok;
+      return result;
+   }
+   
+   static OperationResult Multiply(const Matrix<ElementType>& leftMatrix, const Matrix<ElementType>& rightMatrix)
+   {
+      OperationResult result;
+      CheckIfCanMultiplyTogether(leftMatrix, rightMatrix, result.Code_, result.Description_);
+      if (result.Code_ == OperationResultCode::Error)
+      {
+         return result;
+      }
+      const size_t numberOfItems = leftMatrix.ColumnCount();
+      auto initFunc = [&leftMatrix, &rightMatrix, numberOfItems](size_t row, size_t column)-> ElementType 
+      { 
+         ElementType result = MatrixSettings::Zero<ElementType>();
+         for (size_t i = 0; i < numberOfItems; ++i)
+         {
+            result += leftMatrix.Element(row, i) * rightMatrix.Element(i, column);
+         }
+         return result;
+      };
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(leftMatrix.RowCount(), rightMatrix.ColumnCount(), initFunc);
+      result.Code_ = OperationResultCode::Ok;
+      return result;
+   }
+
    // Matrix
    virtual size_t RowCount() const override { return body_.size(); }
    virtual size_t ColumnCount() const override { return body_.empty() ? 0 : body_[0].size(); }
@@ -43,11 +81,11 @@ public:
    virtual Complexity::Type CopyingComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Copy() const override { return copy(); }
    virtual Complexity::Type AdditionComplexity(const Matrix<ElementType>& otherMatrix) const override{ return Complexity::Quadratic; }
-   virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) const override{ return add(otherMatrix); }
+   virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) const override{ return Add(*this, otherMatrix); }
    virtual Complexity::Type MultiplyByNumberComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult MultiplyByNumber(const ElementType& number) const override{ return multiplyByNumber(number); }
    virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return Complexity::Cubic; }
-   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return multiply(anotherMatrix, anotherMatrixIsOnTheLeft); }
+   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return anotherMatrixIsOnTheLeft ? Multiple(anotherMatrix, *this) : Multiple(*this, anotherMatrix); }
    virtual Complexity::Type TransposeComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Transpose() const override{ return transpose(); }
 
@@ -80,23 +118,6 @@ private:
       return result;
    }
 
-   OperationResult add(const Matrix<ElementType>& otherMatrix) const
-   {
-      OperationResult result;
-      CheckIfCanAddTogether<ElementType>(*this, otherMatrix, result.Code_, result.Description_);
-      if (result.Code_ == OperationResultCode::Error)
-      {
-         return result;
-      }
-
-      const Matrix<ElementType>& matrix1 = *this;
-      const Matrix<ElementType>& matrix2 = otherMatrix;
-      auto initFunc = [&matrix1, &matrix2](size_t row, size_t column)->ElementType { return matrix1.Element(row, column) + matrix2.Element(row, column); };
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
-      result.Code_ = OperationResultCode::Ok;
-      return result;
-   }
-   
    OperationResult multiplyByNumber(const ElementType& number) const
    { 
       OperationResult result;
