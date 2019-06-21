@@ -15,27 +15,36 @@
 namespace SMT
 {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Complexity (Big O notation)
+struct Complexity
+{
+   using Type = int;
+   enum : Type {
+      Constant,                                 // O(1)
+      DoubleLogarithmic,                        // O(log(logN))
+      Logarithmic,                              // O(logN)
+      Polylogarithmic,                          // O((logN)^C), C > 1
+      FractionalPower,                          // O(N^C), 0 < C < 1
+      Linear,                                   // O(N)
+      Loglinear,                                // O(N * logN)
+      Quadratic,                                // O(N^2)
+      Cubic,                                    // O(N^3)
+      Polynomial,                               // O(N^C), C > 3
+      Exponential,                              // O(C^N)
+      Factorial,                                // O(N!)
+      
+      Max,
+      Undefined = Max,
+   };
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // A type of result for each matrix operation
 enum class OperationResultCode
 {
-   Ok,                                       // Operation is successfully done
-   NotImplemented,                           // Operation is not implemented in the inherited class
-   Error,                                    // Operation can't be done. Matrix_ is not valid! OperationResult::ErrorDescription_ contains a description.
-   Warning,                                  // Operation is done. Matrix_ contains a valid result but there is some specific information which can be logged
-};
-
-// Efficiency
-using EfficiencyType = long long;
-struct Efficiency
-{
-   enum : EfficiencyType {
-      Const = -1,
-      Log = -7,
-      Linear = -100,
-      Quadratic = -10000,
-      Cubic = -1000000,
-      Undefined = LLONG_MIN,
-   }
+   Ok,                                          // Operation is successfully done
+   NotImplemented,                              // Operation is not implemented in the inherited class
+   Error,                                       // Operation can't be done. Matrix_ is not valid! OperationResult::ErrorDescription_ contains a description.
+   Warning,                                     // Operation is done. Matrix_ contains a valid result but there is some specific information which can be logged
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,7 +56,6 @@ class Matrix
 public:
    // -- Type definitions
    using SharedPtr = std::shared_ptr<Matrix>;   // Pointer to matrix
-   using EfficiencyType = long long int;        // Type of algorithm efficiency evaluation. The more value is, the more efficient an algorithm is
    // A result for each matrix operation
    struct OperationResult
    {
@@ -58,7 +66,7 @@ public:
    };
 
    // -- Class-specific methods
-   // Constructor
+   // Constantructor
    Matrix() {}
    // Required virtual destructor
    virtual ~Matrix() {}
@@ -74,27 +82,26 @@ public:
    virtual std::string TypeName() const = 0;
 
    // -- Operations
-   //    All *****Effeciency methods return special coefficient which means: how many times does the computation time increase by if the matrices sizes are increased by 100 times?
-   //    (!) The computation time includes the creation of the result.
+   //    (!) The complexity includes the creation of the result.
    //    Examples:
-   //       1. Increasing of copying/addition time is quadric (depending on the size of matrix). So if we increase matrix size by 100 times the copying/addition time increases by 10000 times (usually). So CopyingEfficiency()/AdditionEfficiency() returns 10000 (usually).
-   //       2. Diagonal matrix represents only by diagonal elements. So if we increase matrix size by 100 times the copying time of diagonal matrix increases by 100 times only. So CopyingEfficiency() returns 100.
-   //       3. Function matrix contains an only function which calculates every element and doesn't contain any matrix data (except size, of course). So if we increase matrix size by 100 times the copying time of diagonal doesn't increase. So CopyingEfficiency() returns 1!
-   //       4. Zero matrix "knows" that it doesn't change another matrix (another matrix which is involved in the operation with Zero matrix) on addition. So we need to create only a copy of another matrix. So AdditionEfficiency() of zero matrix is equal CopyingEfficiency() of another matrix.
+   //       1. Increasing of copying/addition time is quadratic (depending on the size of matrix). So if we increase matrix size by 100 times the copying/addition time increases by 10000 times (usually). So CopyingComplexity()/AdditionComplexity() returns Complexity::Quadratic (usually).
+   //       2. Diagonal matrix represents only by diagonal elements. So if we increase matrix size by 100 times the copying time of diagonal matrix increases by 100 times only. So CopyingComplexity() returns Complexity::Linear.
+   //       3. Function matrix contains an only function which calculates every element and doesn't contain any matrix data (except size, of course). So if we increase matrix size by 100 times the copying time of diagonal doesn't increase. So CopyingComplexity() returns Complexity::Constantant!
+   //       4. Zero matrix "knows" that it doesn't change another matrix (another matrix which is involved in the operation with Zero matrix) on addition. So we need to create only a copy of another matrix. So AdditionComplexity() of zero matrix is equal CopyingComplexity() of another matrix.
    //    All operations return OperationResult, a structure which contains a result code and a result matrix (if the operation has been done successfully)
    // Copying (deeply)
-   virtual EfficiencyType CopyingEfficiency() const { return Efficiency::Undefined; }
+   virtual Complexity::Type CopyingComplexity() const { return Complexity::Undefined; }
    virtual OperationResult Copy() const { return OperationResult(); }
    // Addition
-   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& /*otherMatrix*/) const { return Efficiency::Undefined; }
+   virtual Complexity::Type AdditionComplexity(const Matrix<ElementType>& /*otherMatrix*/) const { return Complexity::Undefined; }
    virtual OperationResult Add(const Matrix<ElementType>& /*otherMatrix*/) const { return OperationResult(); }
    // Multiplication
-   virtual EfficiencyType MultiplyByNumberEfficiency() const { return Efficiency::Undefined; }
+   virtual Complexity::Type MultiplyByNumberComplexity() const { return Complexity::Undefined; }
    virtual OperationResult MultiplyByNumber(const ElementType& /*number*/) const { return OperationResult(); }
-   virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return Efficiency::Undefined; }
+   virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return Complexity::Undefined; }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return OperationResult(); }
    // Transposition
-   virtual EfficiencyType TransposeEfficiency() const { return Efficiency::Undefined; }
+   virtual Complexity::Type TransposeComplexity() const { return Complexity::Undefined; }
    virtual OperationResult Transpose() const { return OperationResult(); }
 };
 

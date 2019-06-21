@@ -72,13 +72,13 @@ typename Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& ma
 template <typename ElementType>
 typename Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2)
 {
-	const Matrix<ElementType>::EfficiencyType matrix1Efficiency = matrix1.AddEfficiency(matrix2);
-   const Matrix<ElementType>::EfficiencyType matrix2Efficiency = matrix2.AddEfficiency(matrix1);
-	const Matrix<ElementType>::EfficiencyType bestEfficiency = std::max<Matrix<ElementType>::EfficiencyType>(matrix1Efficiency, matrix2Efficiency);
-	if (bestEfficiency != Matrix<ElementType>::Efficiency::Undefined)
+	const Complexity::Type matrix1Complexity = matrix1.AddComplexity(matrix2);
+   const Complexity::Type matrix2Complexity = matrix2.AddComplexity(matrix1);
+	const Complexity::Type bestComplexity = std::max<Complexity::Type>(matrix1Complexity, matrix2Complexity);
+	if (bestComplexity < Complexity::Max)
 	{	
-      const Matrix<ElementType>& mainMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix1 : matrix2;
-      const Matrix<ElementType>& addedMatrix = (matrix1Efficiency >= matrix2Efficiency) ? matrix2 : matrix1;
+      const Matrix<ElementType>& mainMatrix = (matrix1Complexity <= matrix2Complexity) ? matrix1 : matrix2;
+      const Matrix<ElementType>& addedMatrix = (matrix1Complexity <= matrix2Complexity) ? matrix2 : matrix1;
       const Matrix<ElementType>::OperationResult result = mainMatrix.Add(addedMatrix);
       if ((result.Code_ == Matrix<ElementType>::Ok || result.Code_ == Matrix<ElementType>::Warning) && (result.Matrix_ != nullptr))
       {
@@ -126,14 +126,14 @@ typename Matrix<ElementType>::OperationResult MultiplyByNumber(const Matrix<Elem
 template <typename ElementType>
 typename Matrix<ElementType>::OperationResult Multiply(const Matrix<ElementType>& leftMatrix, const Matrix<ElementType>& rightMatrix)
 {
-   const Matrix<ElementType>::EfficiencyType leftMatrixEfficiency = leftMatrix.MultiplyEfficiency(rightMatrix, false);
-   const Matrix<ElementType>::EfficiencyType rightMatrixEfficiency = rightMatrix.MultiplyEfficiency(leftMatrix, true);
-   const Matrix<ElementType>::EfficiencyType bestEfficiency = std::max<Matrix<ElementType>::EfficiencyType>(leftMatrixEfficiency, rightMatrixEfficiency);
-   if (bestEfficiency != Matrix<ElementType>::Efficiency::Undefined)
+   const Complexity::Type leftMatrixComplexity = leftMatrix.MultiplyComplexity(rightMatrix, false);
+   const Complexity::Type rightMatrixComplexity = rightMatrix.MultiplyComplexity(leftMatrix, true);
+   const Complexity::Type bestComplexity = std::max<Complexity::Type>(leftMatrixComplexity, rightMatrixComplexity);
+   if (bestComplexity < Complexity::Max)
    {
-      const Matrix<ElementType>& mainMatrix = (leftMatrixEfficiency >= rightMatrixEfficiency) ? leftMatrix : rightMatrix;
-      const Matrix<ElementType>& anotherMatrix = (leftMatrixEfficiency >= rightMatrixEfficiency) ? rightMatrix : leftMatrix;
-      const bool anotherMatrixIsOnTheLeft = (leftMatrixEfficiency < rightMatrixEfficiency);
+      const Matrix<ElementType>& mainMatrix = (leftMatrixComplexity <= rightMatrixComplexity) ? leftMatrix : rightMatrix;
+      const Matrix<ElementType>& anotherMatrix = (leftMatrixComplexity <= rightMatrixComplexity) ? rightMatrix : leftMatrix;
+      const bool anotherMatrixIsOnTheLeft = (leftMatrixComplexity < rightMatrixComplexity);
       Matrix<ElementType>::OperationResult result = mainMatrix.Multiply(anotherMatrix, anotherMatrixIsOnTheLeft);
       if ((result.Code_ == OperationResultCode::Ok || result.Code_ == OperationResultCode::Warning) && (result.Matrix_ != nullptr))
       {

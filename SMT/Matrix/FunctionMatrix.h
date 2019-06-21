@@ -18,7 +18,7 @@ class FunctionMatrix : public Matrix<ElementType>
 {
 public:
    using ElementFunc = std::function<ElementType (size_t /*column*/, size_t /*row*/)>; // A function which defines this matrix
-   FunctionMatrix(size_t rowCount, size_t columnCount, const ElementFunc& elementFunc = ElementFunc(), EfficiencyType efficiency = Efficiency::Const)
+   FunctionMatrix(size_t rowCount, size_t columnCount, const ElementFunc& elementFunc = ElementFunc(), Complexity::Type efficiency = Complexity::Constant)
       : rowCount_(rowCount)
       , columnCount_(columnCount)
       , efficiency_(efficiency)
@@ -41,21 +41,21 @@ public:
    virtual size_t ColumnCount() const override { return columnCount_; }
    virtual ElementType Element(size_t row, size_t column) const override { return func_(row, column); }
    virtual std::string TypeName() const { return "FunctionMatrix"; }
-   virtual EfficiencyType CopyingEfficiency() const override { return Efficiency::Const; }
+   virtual Complexity::Type CopyingComplexity() const override { return Complexity::Constant; }
    virtual OperationResult Copy() const override { return copy(); }
-   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& otherMatrix) const override { return additionEfficiency(otherMatrix); }
+   virtual Complexity::Type AdditionComplexity(const Matrix<ElementType>& otherMatrix) const override { return additionComplexity(otherMatrix); }
    virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) const override{ return add(otherMatrix); }
-   virtual EfficiencyType MultiplyByNumberEfficiency() const override { return Efficiency::Const; }
+   virtual Complexity::Type MultiplyByNumberComplexity() const override { return Complexity::Constant; }
    virtual OperationResult MultiplyByNumber(const ElementType& number) const override{ return multiplyByNumber(number); }
-   virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return multiplicationEfficiency(anotherMatrix, anotherMatrixIsOnTheLeft); }
+   virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return multiplicationComplexity(anotherMatrix, anotherMatrixIsOnTheLeft); }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return multiply(anotherMatrix, anotherMatrixIsOnTheLeft); }
-   virtual EfficiencyType TransposeEfficiency() const override { return Efficiency::Const; }
+   virtual Complexity::Type TransposeComplexity() const override { return Complexity::Constant; }
    virtual OperationResult Transpose() const override{ return transpose(); }
 
 private:
    size_t rowCount_;
    size_t columnCount_;
-   EfficiencyType efficiency_;			// Efficiency of this function (it can be combination of function)
+   Complexity::Type efficiency_;			// Complexity of this function (it can be combination of function)
    ElementFunc func_;
 
    OperationResult copy() const
@@ -66,9 +66,15 @@ private:
       return result;
    }
 
+   Complexity::Type additionComplexity(const Matrix<ElementType>& otherMatrix) const
+   {
+      return (dynamic_cast<const FunctionMatrix<ElementType>*>(&otherMatrix) != nullptr) ? Complexity::Constant : Complexity::Quadratic;
+   }
+
    OperationResult add(const Matrix<ElementType>& otherMatrix) const
    {
       OperationResult result;
+      const FunctionMatrix<ElementType>* otherFuncMatrix = ynamic_cast<const FunctionMatrix<ElementType>*>(&otherMatrix);
       CheckIfCanAddTogether<ElementType>(*this, otherMatrix, result.Code_, result.Description_);
       if (result.Code_ == OperationResultCode::Error)
       {

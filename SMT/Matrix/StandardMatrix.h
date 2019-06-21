@@ -40,15 +40,15 @@ public:
    virtual size_t ColumnCount() const override { return body_.empty() ? 0 : body_[0].size(); }
    virtual ElementType Element(size_t row, size_t column) const override { return body_[row][column]; }
    virtual std::string TypeName() const { return "StandardMatrix"; }
-   virtual EfficiencyType CopyingEfficiency() const override { return Efficiency::Quadratic; }
+   virtual Complexity::Type CopyingComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Copy() const override { return copy(); }
-   virtual EfficiencyType AdditionEfficiency(const Matrix<ElementType>& otherMatrix) const override{ return Efficiency::Quadratic; }
+   virtual Complexity::Type AdditionComplexity(const Matrix<ElementType>& otherMatrix) const override{ return Complexity::Quadratic; }
    virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) const override{ return add(otherMatrix); }
-   virtual EfficiencyType MultiplyByNumberEfficiency() const override { return Efficiency::Quadratic; }
+   virtual Complexity::Type MultiplyByNumberComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult MultiplyByNumber(const ElementType& number) const override{ return multiplyByNumber(number); }
-   virtual EfficiencyType MultiplyEfficiency(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return Efficiency::Cubic; }
+   virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return Complexity::Cubic; }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return multiply(anotherMatrix, anotherMatrixIsOnTheLeft); }
-   virtual EfficiencyType TransposeEfficiency() const override { return Efficiency::Quadratic; }
+   virtual Complexity::Type TransposeComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Transpose() const override{ return transpose(); }
 
 private:
