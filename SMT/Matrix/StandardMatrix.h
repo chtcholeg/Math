@@ -85,7 +85,7 @@ public:
    virtual Complexity::Type MultiplyByNumberComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult MultiplyByNumber(const ElementType& number) const override{ return multiplyByNumber(number); }
    virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return Complexity::Cubic; }
-   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return anotherMatrixIsOnTheLeft ? Multiple(anotherMatrix, *this) : Multiple(*this, anotherMatrix); }
+   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return anotherMatrixIsOnTheLeft ? Multiply(anotherMatrix, *this) : Multiply(*this, anotherMatrix); }
    virtual Complexity::Type TransposeComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Transpose() const override{ return transpose(); }
 
@@ -124,31 +124,6 @@ private:
       const Matrix& matrix = *this;
       auto initFunc = [&matrix, number](size_t row, size_t column)->ElementType { return matrix.Element(row, column) * number; };
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
-      result.Code_ = OperationResultCode::Ok;
-      return result;
-   }
-   
-   OperationResult multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const
-   {
-      OperationResult result;
-      const Matrix<ElementType>& leftMatrix = anotherMatrixIsOnTheLeft ? anotherMatrix : *this;
-      const Matrix<ElementType>& rightMatrix = anotherMatrixIsOnTheLeft ? *this : anotherMatrix;
-      CheckIfCanMultiplyTogether(leftMatrix, rightMatrix, result.Code_, result.Description_);
-      if (result.Code_ == OperationResultCode::Error)
-      {
-         return result;
-      }
-      const size_t numberOfItems = leftMatrix.ColumnCount();
-      auto initFunc = [&leftMatrix, &rightMatrix, numberOfItems](size_t row, size_t column)-> ElementType 
-      { 
-         ElementType result = MatrixSettings::Zero<ElementType>();
-         for (size_t i = 0; i < numberOfItems; ++i)
-         {
-            result += leftMatrix.Element(row, i) * rightMatrix.Element(i, column);
-         }
-         return result;
-      };
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(leftMatrix.RowCount(), rightMatrix.ColumnCount(), initFunc);
       result.Code_ = OperationResultCode::Ok;
       return result;
    }

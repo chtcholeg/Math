@@ -71,22 +71,22 @@ private:
    OperationResult add(const Matrix<ElementType>& otherMatrix) const
    {
       const FunctionMatrix<ElementType>* otherFuncMatrix = dynamic_cast<const FunctionMatrix<ElementType>*>(&otherMatrix);
-	  if (otherFuncMatrix != nullptr)
-	  {
-          OperationResult result;
-		  CheckIfCanAddTogether<ElementType>(matrix1, matrix2, result.Code_, result.Description_);
-          if (result.Code_ == OperationResultCode::Error)
-          {
-              return result;
-          }
-		  auto func1 = func_;
-		  auto func2 = otherFuncMatrix->func_;
-		  auto newFunc = [func1, func2](size_t column, size_t row)->ElementType
-		  {
-			  return func1(column, row) + func2(column, row);
-		  };
-		  return result;
-	  }
+      if (otherFuncMatrix != nullptr)
+      {
+         OperationResult result;
+         CheckIfCanAddTogether<ElementType>(matrix1, matrix2, result.Code_, result.Description_);
+         if (result.Code_ == OperationResultCode::Error)
+         {
+            return result;
+         }
+         auto func1 = func_;
+         auto func2 = otherFuncMatrix->func_;
+         auto newFunc = [func1, func2](size_t column, size_t row)->ElementType
+         {
+            return func1(column, row) + func2(column, row);
+         };
+         return result;
+      }
       return StandardMatrix<ElementType>::Add(*this, otherMatrix);
    }
    
