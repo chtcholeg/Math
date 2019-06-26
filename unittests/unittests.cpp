@@ -8,6 +8,8 @@
 int _tmain(int argc, _TCHAR* argv[])
 {
    ::testing::InitGoogleTest(&argc, argv);
-   return RUN_ALL_TESTS();
+   const int result = RUN_ALL_TESTS();
+   getchar();
+   return result;
 }
 
