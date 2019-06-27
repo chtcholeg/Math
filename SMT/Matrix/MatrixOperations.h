@@ -72,15 +72,15 @@ typename Matrix<ElementType>::OperationResult Copy(const Matrix<ElementType>& ma
 template <typename ElementType>
 typename Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2)
 {
-	const Complexity::Type matrix1Complexity = matrix1.AddComplexity(matrix2);
-   const Complexity::Type matrix2Complexity = matrix2.AddComplexity(matrix1);
+   const Complexity::Type matrix1Complexity = matrix1.AdditionComplexity(matrix2);
+   const Complexity::Type matrix2Complexity = matrix2.AdditionComplexity(matrix1);
 	const Complexity::Type bestComplexity = std::max<Complexity::Type>(matrix1Complexity, matrix2Complexity);
 	if (bestComplexity < Complexity::Max)
 	{	
       const Matrix<ElementType>& mainMatrix = (matrix1Complexity <= matrix2Complexity) ? matrix1 : matrix2;
       const Matrix<ElementType>& addedMatrix = (matrix1Complexity <= matrix2Complexity) ? matrix2 : matrix1;
-      const Matrix<ElementType>::OperationResult result = mainMatrix.Add(addedMatrix);
-      if ((result.Code_ == Matrix<ElementType>::Ok || result.Code_ == Matrix<ElementType>::Warning) && (result.Matrix_ != nullptr))
+      Matrix<ElementType>::OperationResult result = mainMatrix.Add(addedMatrix);
+      if ((result.Code_ == OperationResultCode::Ok || result.Code_ == OperationResultCode::Warning) && (result.Matrix_ != nullptr))
       {
          if (result.Description_.empty())
          {
@@ -89,7 +89,7 @@ typename Matrix<ElementType>::OperationResult Add(const Matrix<ElementType>& mat
          return result;
       }
    }
-   StandardMatrix standardMatrixCopy(matrix1);
+   StandardMatrix<double> standardMatrixCopy(matrix1);
    Matrix<ElementType>::OperationResult result = standardMatrixCopy.Add(matrix2);
    if (result.Code_ == OperationResultCode::Ok)
    {
