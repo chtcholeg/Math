@@ -8,7 +8,7 @@
 class StandardMatrixTest : public ::testing::Test 
 {
 protected:
-   static SMT::Matrix<double>::SharedPtr createStandardMatrix(size_t rowCount, size_t columnCount, const std::function<double(size_t, size_t)>& func)
+   static SMT::Matrix<double>::SharedPtr createStandardMatrix(size_t rowCount, size_t columnCount, const std::function<double(size_t /*row*/, size_t /*column*/)>& func)
    {
       SMT::Matrix<double>::SharedPtr result = std::make_shared<SMT::StandardMatrix<double>>(rowCount, columnCount, func);
 
@@ -17,6 +17,49 @@ protected:
 
       return result;
    }
+   static void checkForEachElement(const SMT::Matrix<double>& matrix, const std::function<double(size_t /*row*/, size_t /*column*/)>& func, bool epsilonIsZero)
+   {
+	   const size_t columnCount = matrix.ColumnCount();
+	   const size_t rowCount = matrix.RowCount();
+	   for (size_t i = 0; i < rowCount; ++i)
+	   {
+		  for (size_t j = 0; j < columnCount; ++j)
+		  {
+			  if (epsilonIsZero)
+			  {
+				  EXPECT_EQ(matrix.Element(i, j), func(i, j));
+			  }
+			  else
+			  {
+			     ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(matrix.Element(i, j) - func(i, j)));
+			  }
+		  }
+	   }
+   }
+   static void checkEquality(const SMT::Matrix<double>& matrix1, const SMT::Matrix<double>& matrix2, bool epsilonIsZero)
+   {
+       EXPECT_EQ(matrix1.TypeName(), matrix2.TypeName());
+       EXPECT_EQ(matrix1.ColumnCount(), matrix2.ColumnCount());
+       EXPECT_EQ(matrix1.RowCount(), matrix2.RowCount());
+
+	   const size_t columnCount = matrix1.ColumnCount();
+	   const size_t rowCount = matrix1.RowCount();
+
+	   for (size_t i = 0; i < rowCount; ++i)
+	   {
+		  for (size_t j = 0; j < columnCount; ++j)
+		  {
+			  if (epsilonIsZero)
+			  {
+	              EXPECT_EQ(matrix1.Element(i, j), matrix2.Element(i, j));
+			  }
+			  else
+			  {
+				  ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(matrix1.Element(i, j) - matrix2.Element(i, j)));
+			  }  
+		  }
+	   }
+   {  
 };
 
 TEST_F(StandardMatrixTest, IdentityMatrix)
@@ -25,14 +68,8 @@ TEST_F(StandardMatrixTest, IdentityMatrix)
    const size_t columnCount = 10;
    const size_t rowCount = 10;
    auto matrix = createStandardMatrix(rowCount, columnCount, initFunc);
-   for (size_t i = 0; i < rowCount; ++i)
-   {
-      for (size_t j = 0; j < columnCount; ++j)
-      {
-         const double diff = matrix->Element(i, j) - (i == j ? SMT::MatrixSettings::One<double>() : SMT::MatrixSettings::Zero<double>());
-         ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(diff));
-      }
-   }
+   ASSERT_TRUE(matrix != nullptr);
+   checkForEachElement(*matrix, initFunc, true);
 }
 
 TEST_F(StandardMatrixTest, ZeroMatrix)
@@ -41,13 +78,8 @@ TEST_F(StandardMatrixTest, ZeroMatrix)
    const size_t columnCount = 10;
    const size_t rowCount = 10;
    auto matrix = createStandardMatrix(rowCount, columnCount, initFunc);
-   for (size_t i = 0; i < rowCount; ++i)
-   {
-      for (size_t j = 0; j < columnCount; ++j)
-      {
-         ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(matrix->Element(i, j)));
-      }
-   }
+   ASSERT_TRUE(matrix != nullptr);
+   checkForEachElement(*matrix, initFunc, true);
 }
 
 TEST_F(StandardMatrixTest, CopyMatrix)
@@ -56,21 +88,12 @@ TEST_F(StandardMatrixTest, CopyMatrix)
    const size_t columnCount = 50;
    const size_t rowCount = 40;
    auto originalMatrix = createStandardMatrix(rowCount, columnCount, initFunc);
+   ASSERT_TRUE(originalMatrix != nullptr);
    auto copyMatrixResult = SMT::Copy(*originalMatrix);
    EXPECT_EQ(copyMatrixResult.Code_, SMT::OperationResultCode::Ok);
    auto copyMatrix = copyMatrixResult.Matrix_;
    ASSERT_TRUE(copyMatrix != nullptr);
-   EXPECT_EQ(copyMatrix->TypeName(), originalMatrix->TypeName());
-   EXPECT_EQ(copyMatrix->ColumnCount(), originalMatrix->ColumnCount());
-   EXPECT_EQ(copyMatrix->RowCount(), originalMatrix->RowCount());
-
-   for (size_t i = 0; i < rowCount; ++i)
-   {
-      for (size_t j = 0; j < columnCount; ++j)
-      {
-         EXPECT_EQ(copyMatrix->Element(i, j), originalMatrix->Element(i, j));
-      }
-   }
+   checkEquality(*originalMatrix, *copyMatrix, true);
 }
 
 TEST_F(StandardMatrixTest, CopyMatrix2)
@@ -79,20 +102,10 @@ TEST_F(StandardMatrixTest, CopyMatrix2)
    const size_t columnCount = 30;
    const size_t rowCount = 40;
    auto originalMatrix = createStandardMatrix(rowCount, columnCount, initFunc);
-   SMT::StandardMatrix<double> copyMatrix = SMT::StandardMatrix<double>(*originalMatrix);
-   EXPECT_EQ(copyMatrix.TypeName(), originalMatrix->TypeName());
-   EXPECT_EQ(copyMatrix.ColumnCount(), originalMatrix->ColumnCount());
-   EXPECT_EQ(copyMatrix.RowCount(), originalMatrix->RowCount());
-
-   for (size_t i = 0; i < rowCount; ++i)
-   {
-      for (size_t j = 0; j < columnCount; ++j)
-      {
-         EXPECT_EQ(copyMatrix.Element(i, j), originalMatrix->Element(i, j));
-      }
-   }
+   ASSERT_TRUE(originalMatrix != nullptr);
+   SMT::StandardMatrix<double> copyMatrix(*originalMatrix);
+   checkEquality(*originalMatrix, copyMatrix, true);
 }
-
 
 TEST_F(StandardMatrixTest, AddingMatricesTogether)
 {
@@ -110,11 +123,6 @@ TEST_F(StandardMatrixTest, AddingMatricesTogether)
    EXPECT_EQ(resultMatrix->ColumnCount(), columnCount);
    EXPECT_EQ(resultMatrix->RowCount(), rowCount);
 
-   for (size_t i = 0; i < rowCount; ++i)
-   {
-      for (size_t j = 0; j < columnCount; ++j)
-      {
-         ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(resultMatrix->Element(i, j) - initFunc1(i, j) - initFunc2(i, j)));
-      }
-   }
+   auto resultFunc = [initFunc1, initFunc2](size_t row, size_t column) -> double { return initFunc1(row, column) + initFunc2(row, column); };
+   checkForEachElement(*resultMatrix, resultFunc, false);
 }
