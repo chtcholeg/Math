@@ -126,3 +126,23 @@ TEST_F(StandardMatrixTest, AddingMatricesTogether)
    auto resultFunc = [initFunc1, initFunc2](size_t row, size_t column) -> double { return initFunc1(row, column) + initFunc2(row, column); };
    checkForEachElement(*resultMatrix, resultFunc, false);
 }
+
+TEST_F(StandardMatrixTest, MultiplicationByNumber)
+{
+   auto initFunc = [](size_t row, size_t column)->double { return static_cast<double>(row)* 10.0 + static_cast<double>(column); };
+   const size_t columnCount = 51;
+   const size_t rowCount = 41;
+   const double number = 2.1;
+   auto matrix = createStandardMatrix(rowCount, columnCount, initFunc);
+
+   auto result = SMT::MultiplyByNumber(*matrix, number);
+   EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
+   auto resultMatrix = result.Matrix_;
+   
+   ASSERT_TRUE(resultMatrix != nullptr);
+   EXPECT_EQ(resultMatrix->ColumnCount(), columnCount);
+   EXPECT_EQ(resultMatrix->RowCount(), rowCount);
+
+   auto resultFunc = [number, initFunc](size_t row, size_t column) -> double { return initFunc(row, column) * number; };
+   checkForEachElement(*resultMatrix, resultFunc, false);   
+}
