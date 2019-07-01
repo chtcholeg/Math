@@ -7,6 +7,7 @@
 
 #include "MatrixDefs.h"
 #include "MatrixOperations.h"
+#include "MatrixAlgorithms.h"
 
 namespace SMT
 {
@@ -87,7 +88,7 @@ public:
    virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return Complexity::Cubic; }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return anotherMatrixIsOnTheLeft ? Multiply(anotherMatrix, *this) : Multiply(*this, anotherMatrix); }
    virtual Complexity::Type InversionComplexity() const override { return Complexity::Cubic; }
-   virtual OperationResult Invert() const override { return invert(); }
+   virtual OperationResult Invert() const override { return SMT::Algorithms::GaussJordanElimination(*this); }
    virtual Complexity::Type TransposeComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Transpose() const override{ return transpose(); }
 
@@ -130,14 +131,6 @@ private:
       return result;
    }
    
-   OperationResult invert() const
-   {
-      OperationResult result;
-      auto initFunc = [](size_t row, size_t column)->ElementType { return row == column ? MatrixSettings::One<ElementType>();  : MatrixSettings::Zero<ElementType>(); };
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
-      for
-   }
-
    OperationResult transpose() const
    {
       OperationResult result;
