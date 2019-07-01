@@ -139,3 +139,22 @@ TEST_F(StandardMatrixTest, Multiply)
    };
    CheckForEachElement(*resultMatrix, resultFunc, false);
 }
+
+TEST_F(StandardMatrixTest, Transposition)
+{
+   auto initFunc = [](size_t row, size_t column)->double { return static_cast<double>(row)* 10.0 + static_cast<double>(column); };
+   const size_t columnCount = 51;
+   const size_t rowCount = 41;
+   auto matrix = CreateStandardMatrix(rowCount, columnCount, initFunc);
+
+   auto result = SMT::Transpose(*matrix);
+   EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
+   auto resultMatrix = result.Matrix_;
+
+   ASSERT_TRUE(resultMatrix != nullptr);
+   EXPECT_EQ(resultMatrix->ColumnCount(), rowCount);
+   EXPECT_EQ(resultMatrix->RowCount(), columnCount);
+
+   auto resultFunc = [initFunc](size_t row, size_t column) -> double { return initFunc(column, row); };
+   CheckForEachElement(*resultMatrix, resultFunc, true);
+}
