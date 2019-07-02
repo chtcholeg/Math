@@ -1,6 +1,8 @@
 #ifndef __MATRIX_ALGORITHMS_H__
 #define __MATRIX_ALGORITHMS_H__
 
+#include <functional>
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Matrix algorithms
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +21,7 @@ ElementType DistanceToOne(ElementType value)
 {
    const ElementType absValue = std::abs<ElementType>(value);
    const ElementType one = MatrixSettings::One<ElementType>();
-   if (MatrixSettings::CanAssumeItIsZero<ElementType>(absValue - one)
+   if (MatrixSettings::CanAssumeItIsZero<ElementType>(absValue - one))
    {
       return MatrixSettings::Zero<ElementType>();
    }
@@ -32,11 +34,21 @@ ElementType DistanceToOne(ElementType value)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Gauss–Jordan elimination
+template<typename ElementType>
+using CreateIdentityMatrixFunc = std::function< std::shared_ptr<Matrix<ElementType>> (size_t size) >;
+
 template <typename ElementType>
-typename Matrix<ElementType>::OperationResult GaussJordanElimination(const Matrix<ElementType>& matrixConst, const Matrix<ElementType>& identityMatrixConst)
+typename Matrix<ElementType>::OperationResult GaussJordanElimination(const Matrix<ElementType>& matrixConst, const CreateIdentityMatrixFunc<ElementType>& createIdentityMatrixFunc)
 {
-   auto matrix = matrixConst.Copy();
+   auto matrixCopyResult = matrixConst.Copy();
+   if (matrixCopyResult.Code_ == OperationResultCode::Error || matrixCopyResult.Code_ == OperationResultCode::NotImplemented)
+   {
+      return matrixCopyResult;
+   }
    Matrix<ElementType>::OperationResult result;
+   result.Code_ = matrixCopyResult.Code_;
+   result.Description_ = matrixCopyResult.Description_;
+   auto matrix = matrixCopyResult.Matrix_;
    if (matrix == nullptr || matrix->RowCount() != matrix->ColumnCount())
    {
       result.Code_ = OperationResultCode::Error;
@@ -45,7 +57,7 @@ typename Matrix<ElementType>::OperationResult GaussJordanElimination(const Matri
             : "Matrix can't be inverted: the number of rows (=" + std::to_string(matrix->RowCount()) + ") doesn't equal the number of columns (=" + std::to_string(matrix->ColumnCount()) + ")";
       return result;
    }
-   auto result.Matrix_ = identityMatrixConst.Copy();
+   result.Matrix_ = createIdentityMatrixFunc(matrix->RowCount());
    if (result.Matrix_ == nullptr)
    {
       result.Code_ = OperationResultCode::Error;
@@ -83,7 +95,7 @@ typename Matrix<ElementType>::OperationResult GaussJordanElimination(const Matri
             bestDistance = curDistance;
          }
       }
-      if (MatrixSettings::CanAssumeItIsZero<ElementType>(matrix->Element(bestRow, i))
+      if (MatrixSettings::CanAssumeItIsZero<ElementType>(matrix->Element(bestRow, i)))
       {
          result.Code_ = OperationResultCode::Error;
          result.Description_ = "Matrix can't be inverted: it is not invertible";
@@ -110,15 +122,15 @@ typename Matrix<ElementType>::OperationResult GaussJordanElimination(const Matri
             continue;
          }
          const ElementType curKoef = matrix->Element(j, i);
-         matrixElementaryOperations->MultiplyAndAdd(j, i, curKoef);
-         resultElementaryOperations->MultiplyAndAdd(j, i, curKoef);
+         matrixElementaryOperations->MultiplyAndSubtract(j, i, curKoef);
+         resultElementaryOperations->MultiplyAndSubtract(j, i, curKoef);
       }
    }
 
    return result;
 }
 
-} namespace Algorithms
+} // namespace Algorithms
 } // namespace SMT
 
 #endif // __MATRIX_ALGORITHMS_H__

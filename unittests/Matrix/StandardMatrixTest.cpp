@@ -140,6 +140,37 @@ TEST_F(StandardMatrixTest, Multiply)
    CheckForEachElement(*resultMatrix, resultFunc, false);
 }
 
+TEST_F(StandardMatrixTest, Inversion)
+{
+   //     |  3  -2   4  |                 |   1   -2    2  |
+   // A = |  1   0   2  |    ;   A^(-1) = |   0    0    1  |
+   //     |  0   1   0  |                 | -0.5  1.5  -1  |
+   auto initFunc = [](size_t row, size_t column)->double
+   {
+      if (row == 0 && column == 0) return 3.0; if (row == 0 && column == 1) return -2.0; if (row == 0 && column == 2) return 4.0;
+      if (row == 1 && column == 0) return 1.0; if (row == 1 && column == 1) return  0.0; if (row == 1 && column == 2) return 2.0;
+      if (row == 2 && column == 0) return 0.0; if (row == 2 && column == 1) return  1.0; if (row == 2 && column == 2) return 0.0;
+      return 0.0;
+   };
+   auto matrix = CreateStandardMatrix(3, 3, initFunc);
+   auto result = matrix->Invert();
+   EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
+   auto resultMatrix = result.Matrix_;
+
+   ASSERT_TRUE(resultMatrix != nullptr);
+   EXPECT_EQ(resultMatrix->ColumnCount(), 3);
+   EXPECT_EQ(resultMatrix->RowCount(), 3);
+
+   auto resultFunc = [](size_t row, size_t column) -> double
+   {
+      if (row == 0 && column == 0) return 1.0;  if (row == 0 && column == 1) return -2.0; if (row == 0 && column == 2) return  2.0;
+      if (row == 1 && column == 0) return 0.0;  if (row == 1 && column == 1) return  0.0; if (row == 1 && column == 2) return  1.0;
+      if (row == 2 && column == 0) return -0.5; if (row == 2 && column == 1) return  1.5; if (row == 2 && column == 2) return -1.0;
+      return 100000.0;
+   };
+   CheckForEachElement(*resultMatrix, resultFunc, false);
+}
+
 TEST_F(StandardMatrixTest, Transposition)
 {
    auto initFunc = [](size_t row, size_t column)->double { return static_cast<double>(row)* 10.0 + static_cast<double>(column); };

@@ -90,7 +90,7 @@ public:
    virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return Complexity::Cubic; }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return anotherMatrixIsOnTheLeft ? Multiply(anotherMatrix, *this) : Multiply(*this, anotherMatrix); }
    virtual Complexity::Type InversionComplexity() const override { return Complexity::Cubic; }
-   virtual OperationResult Invert() const override { return SMT::Algorithms::GaussJordanElimination(*this); }
+   virtual OperationResult Invert() const override { return Algorithms::GaussJordanElimination<ElementType>(*this, createIdentityMatrix); }
    virtual Complexity::Type TransposeComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Transpose() const override{ return transpose(); }
    virtual IElementaryOperations* ElementaryOperations() { return this; }
@@ -198,6 +198,15 @@ private:
          row1[column] -= row2[column] * number;
       }
       return true;
+   }
+
+   static Matrix<ElementType>::SharedPtr createIdentityMatrix(size_t size)
+   {
+      auto initFunc = [](size_t row, size_t column) -> ElementType
+      {
+         return (row == column) ? MatrixSettings::One<ElementType>() : MatrixSettings::Zero<ElementType>();
+      };
+      return std::make_shared<StandardMatrix<ElementType>>(size, size, initFunc);
    }
 };
 
