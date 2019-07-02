@@ -16,7 +16,9 @@ namespace SMT
 // It represents as a vector of vectors.
 // Very simple but not optimized.
 template <typename ElementType>
-class StandardMatrix : public Matrix<ElementType>
+class StandardMatrix 
+   : public Matrix<ElementType>
+   , public Matrix<ElementType>::IElementaryOperations
 {
 public:
    using InitFunc = std::function<ElementType (size_t /*column*/, size_t /*row*/)>; // A function which initializes all matrix elements
@@ -91,6 +93,11 @@ public:
    virtual OperationResult Invert() const override { return SMT::Algorithms::GaussJordanElimination(*this); }
    virtual Complexity::Type TransposeComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Transpose() const override{ return transpose(); }
+   virtual IElementaryOperations* ElementaryOperations() { return this; }
+   // Matrix::IElementaryOperations
+   virtual bool SwapRows(size_t rowIndex1, size_t rowIndex2) { return swap(rowIndex1, rowIndex2); }
+   virtual bool MultiplyRowByNumber(size_t rowIndex, ElementType number) { return multiplyByNumber(rowIndex, number); }
+   virtual bool MultiplyAndSubtract(size_t rowIndex1, size_t rowIndex2, ElementType number) { return multiplyAndSubtract(rowIndex1, rowIndex2, number); }
 
 private:
    using Row = std::vector<ElementType>;
@@ -138,6 +145,59 @@ private:
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(ColumnCount(), RowCount(), initFunc);
       result.Code_ = OperationResultCode::Ok;
       return result;
+   }
+
+   bool swap(size_t rowIndex1, size_t rowIndex2)
+   {
+      if (rowIndex1 >= RowCount() || rowIndex2 >= RowCount())
+      {
+         return false;
+      }
+      if (rowIndex1 == rowIndex2)
+      {
+         return true;
+      }
+      const size_t columnCount = ColumnCount();
+      auto& row1 = body_[rowIndex1];
+      auto& row2 = body_[rowIndex2];
+      for (size_t column = 0; column < columnCount; ++column)
+      {
+         const auto buffer = row1[column];
+         row1[column] = row2[column];
+         row2[column] = buffer;
+      }
+      return true;
+   }
+
+   bool multiplyByNumber(size_t rowIndex, ElementType number)
+   {
+      if (rowIndex >= RowCount())
+      {
+         return false;
+      }
+      const size_t columnCount = ColumnCount();
+      auto& row = body_[rowIndex];
+      for (size_t column = 0; column < columnCount; ++column)
+      {
+         row[column] *= number;
+      }
+      return true;
+   }
+
+   bool multiplyAndSubtract(size_t rowIndex1, size_t rowIndex2, ElementType number)
+   {
+      if (rowIndex1 >= RowCount() || rowIndex2 >= RowCount())
+      {
+         return false;
+      }
+      const size_t columnCount = ColumnCount();
+      auto& row1 = body_[rowIndex1];
+      auto& row2 = body_[rowIndex2];
+      for (size_t column = 0; column < columnCount; ++column)
+      {
+         row1[column] -= row2[column] * number;
+      }
+      return true;
    }
 };
 

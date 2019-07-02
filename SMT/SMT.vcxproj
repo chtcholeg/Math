@@ -82,6 +82,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Matrix\FunctionMatrix.h" />
+    <ClInclude Include="Matrix\MatrixAlgorithms.h" />
     <ClInclude Include="Matrix\MatrixDefs.h" />
     <ClInclude Include="Matrix\MatrixOperations.h" />
     <ClInclude Include="Matrix\StandardMatrix.h" />

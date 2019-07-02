@@ -109,7 +109,22 @@ public:
    // Transposition
    virtual Complexity::Type TransposeComplexity() const { return Complexity::Undefined; }
    virtual OperationResult Transpose() const { return OperationResult(); }
+
+   // Interface for elementary operations
+   struct IElementaryOperations
+   {
+      // Swaps the positions of two rows
+      virtual bool SwapRows(size_t rowIndex1, size_t rowIndex2) = 0;
+      // Multiplies a row by a number
+      virtual bool MultiplyRowByNumber(size_t rowIndex, ElementType number) = 0;
+      // Row#1 = Row#1 - Row#2 * Number 
+      virtual bool MultiplyAndSubtract(size_t rowIndex1, size_t rowIndex2, ElementType number) = 0;
+   };
+   virtual IElementaryOperations* ElementaryOperations() { return nullptr; }
 };
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Main matrix settings. 
@@ -119,6 +134,8 @@ template <typename ElementType>
    ElementType Zero() { return static_cast<ElementType>(0); }
 template <typename ElementType>
    ElementType One() { return static_cast<ElementType>(1); }
+template <typename ElementType>
+   ElementType Max() { return std::numeric_limits<ElementType>::max(); }
 template <typename ElementType>
    typename std::enable_if<std::is_integral<ElementType>::value, ElementType>::type Epsilon() { return Zero<ElementType>(); }
 template <typename ElementType>

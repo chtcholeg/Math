@@ -27,6 +27,9 @@
     <ClInclude Include="Matrix\FunctionMatrix.h">
       <Filter>Matrix</Filter>
     </ClInclude>
+    <ClInclude Include="Matrix\MatrixAlgorithms.h">
+      <Filter>Matrix</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
