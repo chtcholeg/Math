@@ -103,12 +103,15 @@ public:
    virtual OperationResult MultiplyByNumber(const ElementType& /*number*/) const { return OperationResult(); }
    virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return Complexity::Undefined; }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const { return OperationResult(); }
-   // Invert
+   // Inversion
    virtual Complexity::Type InversionComplexity() const { return Complexity::Undefined; }
    virtual OperationResult Invert() const { return OperationResult(); }
    // Transposition
    virtual Complexity::Type TransposeComplexity() const { return Complexity::Undefined; }
    virtual OperationResult Transpose() const { return OperationResult(); }
+   // Determinant
+   virtual Complexity::Type DeterminantCalculation() const { return Complexity::Undefined; }
+   virtual OperationResult Determinant() const { return OperationResult(); }
 
    // Interface for elementary operations
    struct IElementaryOperations

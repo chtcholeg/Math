@@ -140,7 +140,7 @@ TEST_F(StandardMatrixTest, Multiply)
    CheckForEachElement(*resultMatrix, resultFunc, false);
 }
 
-TEST_F(StandardMatrixTest, Inversion)
+TEST_F(StandardMatrixTest, Inversion1)
 {
    //     |  3  -2   4  |                 |   1   -2    2  |
    // A = |  1   0   2  |    ;   A^(-1) = |   0    0    1  |
@@ -169,6 +169,47 @@ TEST_F(StandardMatrixTest, Inversion)
       return 100000.0;
    };
    CheckForEachElement(*resultMatrix, resultFunc, false);
+}
+
+TEST_F(StandardMatrixTest, Inversion2)
+{
+   //     |  1   0   0  ... 0  |
+   //     |  2   1   0  ... 0  |
+   // A = |  3   2   1  ... 0  |
+   //     |  ................  |
+   //     | 10   9   8  ... 1  |
+   auto initFunc = [](size_t row, size_t column)->double
+   {
+      return (column > row) ? 0.0 : (static_cast<double>(row - column) + 1.0);
+   };
+   auto matrix = CreateStandardMatrix(10, 10, initFunc);
+   auto result = matrix->Invert();
+   EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
+   auto resultMatrix = result.Matrix_;
+   ASSERT_TRUE(resultMatrix != nullptr);
+   EXPECT_EQ(resultMatrix->ColumnCount(), 10);
+   EXPECT_EQ(resultMatrix->RowCount(), 10);
+
+   auto identityFunc = [](size_t row, size_t column)->double 
+   {
+      return (column == row) ? 1.0 : 0.0;
+   };
+
+   auto identityMatrixResult1 = resultMatrix->Multiply(*matrix, true);
+   EXPECT_EQ(identityMatrixResult1.Code_, SMT::OperationResultCode::Ok);
+   auto identityMatrix1 = identityMatrixResult1.Matrix_;
+   ASSERT_TRUE(identityMatrix1 != nullptr);
+   EXPECT_EQ(identityMatrix1->ColumnCount(), 10);
+   EXPECT_EQ(identityMatrix1->RowCount(), 10);
+   CheckForEachElement(*identityMatrix1, identityFunc, false);
+
+   auto identityMatrixResult2 = resultMatrix->Multiply(*matrix, true);
+   EXPECT_EQ(identityMatrixResult2.Code_, SMT::OperationResultCode::Ok);
+   auto identityMatrix2 = identityMatrixResult2.Matrix_;
+   ASSERT_TRUE(identityMatrix2 != nullptr);
+   EXPECT_EQ(identityMatrix2->ColumnCount(), 10);
+   EXPECT_EQ(identityMatrix2->RowCount(), 10);
+   CheckForEachElement(*identityMatrix2, identityFunc, false);
 }
 
 TEST_F(StandardMatrixTest, Transposition)

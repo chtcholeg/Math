@@ -92,7 +92,9 @@ public:
    virtual Complexity::Type InversionComplexity() const override { return Complexity::Cubic; }
    virtual OperationResult Invert() const override { return Algorithms::GaussJordanElimination<ElementType>(*this, createIdentityMatrix); }
    virtual Complexity::Type TransposeComplexity() const override { return Complexity::Quadratic; }
-   virtual OperationResult Transpose() const override{ return transpose(); }
+   virtual OperationResult Transpose() const override { return transpose(); }
+   virtual Complexity::Type DeterminantCalculation() const override { return Complexity::Cubic; }
+   virtual OperationResult Determinant() const override { return Algorithms::GaussJordanElimination<ElementType>(*this, createIdentityMatrix); }
    virtual IElementaryOperations* ElementaryOperations() { return this; }
    // Matrix::IElementaryOperations
    virtual bool SwapRows(size_t rowIndex1, size_t rowIndex2) { return swap(rowIndex1, rowIndex2); }
