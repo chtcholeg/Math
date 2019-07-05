@@ -23,7 +23,7 @@ TEST_F(StandardMatrixTest, IdentityMatrix)
    const size_t rowCount = 10;
    auto matrix = CreateStandardMatrix(rowCount, columnCount, initFunc);
    ASSERT_TRUE(matrix != nullptr);
-   CheckForEachElement(*matrix, initFunc, true);
+   CheckForEachElement<double>(*matrix, initFunc, true);
 }
 
 TEST_F(StandardMatrixTest, ZeroMatrix)
@@ -33,7 +33,7 @@ TEST_F(StandardMatrixTest, ZeroMatrix)
    const size_t rowCount = 10;
    auto matrix = CreateStandardMatrix(rowCount, columnCount, initFunc);
    ASSERT_TRUE(matrix != nullptr);
-   CheckForEachElement(*matrix, initFunc, true);
+   CheckForEachElement<double>(*matrix, initFunc, true);
 }
 
 TEST_F(StandardMatrixTest, CopyMatrix)
@@ -78,7 +78,7 @@ TEST_F(StandardMatrixTest, AddingMatricesTogether)
    EXPECT_EQ(resultMatrix->RowCount(), rowCount);
 
    auto resultFunc = [initFunc1, initFunc2](size_t row, size_t column) -> double { return initFunc1(row, column) + initFunc2(row, column); };
-   CheckForEachElement(*resultMatrix, resultFunc, false);
+   CheckForEachElement<double>(*resultMatrix, resultFunc, false);
 }
 
 TEST_F(StandardMatrixTest, MultiplicationByNumber)
@@ -98,10 +98,10 @@ TEST_F(StandardMatrixTest, MultiplicationByNumber)
    EXPECT_EQ(resultMatrix->RowCount(), rowCount);
 
    auto resultFunc = [number, initFunc](size_t row, size_t column) -> double { return initFunc(row, column) * number; };
-   CheckForEachElement(*resultMatrix, resultFunc, false);   
+   CheckForEachElement<double>(*resultMatrix, resultFunc, false);
 }
 
-TEST_F(StandardMatrixTest, Multiply)
+TEST_F(StandardMatrixTest, Multiplication)
 {
    // |1  2|     |1  2|     |11  8 |
    // |    |  X  |    |  =  |      |
@@ -137,7 +137,7 @@ TEST_F(StandardMatrixTest, Multiply)
       if (row == 1 && column == 0) return 23.0; if (row == 1 && column == 1) return 18.0;
       return 100000.0;
    };
-   CheckForEachElement(*resultMatrix, resultFunc, false);
+   CheckForEachElement<double>(*resultMatrix, resultFunc, false);
 }
 
 TEST_F(StandardMatrixTest, Inversion1)
@@ -168,7 +168,7 @@ TEST_F(StandardMatrixTest, Inversion1)
       if (row == 2 && column == 0) return -0.5; if (row == 2 && column == 1) return  1.5; if (row == 2 && column == 2) return -1.0;
       return 100000.0;
    };
-   CheckForEachElement(*resultMatrix, resultFunc, false);
+   CheckForEachElement<double>(*resultMatrix, resultFunc, false);
 }
 
 TEST_F(StandardMatrixTest, Inversion2)
@@ -201,7 +201,7 @@ TEST_F(StandardMatrixTest, Inversion2)
    ASSERT_TRUE(identityMatrix1 != nullptr);
    EXPECT_EQ(identityMatrix1->ColumnCount(), 10);
    EXPECT_EQ(identityMatrix1->RowCount(), 10);
-   CheckForEachElement(*identityMatrix1, identityFunc, false);
+   CheckForEachElement<double>(*identityMatrix1, identityFunc, false);
 
    auto identityMatrixResult2 = resultMatrix->Multiply(*matrix, true);
    EXPECT_EQ(identityMatrixResult2.Code_, SMT::OperationResultCode::Ok);
@@ -209,7 +209,7 @@ TEST_F(StandardMatrixTest, Inversion2)
    ASSERT_TRUE(identityMatrix2 != nullptr);
    EXPECT_EQ(identityMatrix2->ColumnCount(), 10);
    EXPECT_EQ(identityMatrix2->RowCount(), 10);
-   CheckForEachElement(*identityMatrix2, identityFunc, false);
+   CheckForEachElement<double>(*identityMatrix2, identityFunc, false);
 }
 
 TEST_F(StandardMatrixTest, Transposition)
@@ -228,5 +228,25 @@ TEST_F(StandardMatrixTest, Transposition)
    EXPECT_EQ(resultMatrix->RowCount(), columnCount);
 
    auto resultFunc = [initFunc](size_t row, size_t column) -> double { return initFunc(column, row); };
-   CheckForEachElement(*resultMatrix, resultFunc, true);
+   CheckForEachElement<double>(*resultMatrix, resultFunc, true);
+}
+
+TEST_F(StandardMatrixTest, Determination)
+{
+   //     |  1   0   0  ... 0  |
+   //     |  2   1   0  ... 0  |
+   // A = |  3   2   1  ... 0  |
+   //     |  ................  |
+   //     | 50  49  48  ... 1  |
+   auto initFunc = [](size_t row, size_t column)->double { return (column > row) ? 0.0 : (static_cast<double>(row - column) + 1.0); };
+   const size_t columnCount = 50;
+   const size_t rowCount = 50;
+   auto matrix = CreateStandardMatrix(rowCount, columnCount, initFunc);
+
+   auto result = SMT::Determinant(*matrix);
+   EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
+   auto result = result.Value_;
+
+   ASSERT_TRUE(result != nullptr);
+   ASSERT_TRUE(CheckEquality<double>(*result, SMT::MatrixSettings<double>::One(), false));
 }

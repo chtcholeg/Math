@@ -130,6 +130,85 @@ typename Matrix<ElementType>::OperationResult GaussJordanElimination(const Matri
    return result;
 }
 
+template <typename ElementType>
+typename Matrix<ElementType>::ScalarOperationResult CalcDeterminant_GaussJordanElimination(const Matrix<ElementType>& matrixConst)
+{
+   auto matrixCopyResult = matrixConst.Copy();
+   Matrix<ElementType>::ScalarOperationResult result;
+   result.Code_ = matrixCopyResult.Code_;
+   result.Description_ = matrixCopyResult.Description_;
+   if (result.Code_ == OperationResultCode::Error || result.Code_ == OperationResultCode::NotImplemented)
+   {
+      return result;
+   }
+   auto matrix = matrixCopyResult.Matrix_;
+
+   if (matrix == nullptr || matrix->RowCount() != matrix->ColumnCount())
+   {
+      result.Code_ = OperationResultCode::Error;
+      result.Description_ = matrix == nullptr
+         ? "Matrix is not copyable"
+         : "Matrix can't be inverted: the number of rows (=" + std::to_string(matrix->RowCount()) + ") doesn't equal the number of columns (=" + std::to_string(matrix->ColumnCount()) + ")";
+      return result;
+   }
+
+   auto matrixElementaryOperations = matrix->ElementaryOperations();
+   if (matrixElementaryOperations == nullptr)
+   {
+      result.Code_ = OperationResultCode::Error;
+      result.Description_ = "Deteminant calculation (Gauss elimination method) is not possible: elementary operations are not implemented";
+      return result;
+   }
+
+   const size_t size = matrix->RowCount();
+   ElementType sign = MatrixSettings::One<ElementType>();
+   for (size_t i = 0; i < size; ++i)
+   {
+      size_t bestRow = i;
+      ElementType bestDistance = DistanceToOne(matrix->Element(i, i));
+      for (size_t j = i + 1; j < size; ++j)
+      {
+         const ElementType curDistance = DistanceToOne(matrix->Element(j, i));
+         if (curDistance < bestDistance)
+         {
+            bestRow = j;
+            bestDistance = curDistance;
+         }
+      }
+      if (MatrixSettings::CanAssumeItIsZero<ElementType>(matrix->Element(bestRow, i)))
+      {
+         result.Value_.reset(new ElementType);
+         *result.Value_ = MatrixSettings::Zero<ElementType>();
+         return result;
+      }
+
+      if (bestRow != i)
+      {
+         matrixElementaryOperations->SwapRows(i, bestRow);
+         sign = -sign;
+      }
+
+      for (size_t j = i + 1; j < size; ++j)
+      {
+         const ElementType curValue = matrix->Element(j, i);
+         if (MatrixSettings::CanAssumeItIsZero<ElementType>(curValue))
+         {
+            continue;
+         }
+         const ElementType curKoef = matrix->Element(i, i) / matrix->Element(j, i);
+         matrixElementaryOperations->MultiplyAndSubtract(j, i, curKoef);
+      }
+   }
+
+   result.Value_.reset(new ElementType);
+   *result.Value_ = sign;
+   for (size_t i = 0; i < matrix->RowCount(); ++i)
+   {
+      (*result.Value_) *= matrix->Element(i, i);
+   }
+   return result;
+}
+
 } // namespace Algorithms
 } // namespace SMT
 

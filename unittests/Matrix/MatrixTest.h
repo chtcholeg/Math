@@ -11,7 +11,8 @@
 class MatrixTest : public ::testing::Test 
 {
 protected:
-   static void CheckForEachElement(const SMT::Matrix<double>& matrix, const std::function<double(size_t /*row*/, size_t /*column*/)>& func, bool epsilonIsZero)
+   template<typename ElementType>
+   static void CheckForEachElement(const SMT::Matrix<ElementType>& matrix, const std::function<ElementType(size_t /*row*/, size_t /*column*/)>& func, bool epsilonIsZero)
    {
 	   const size_t columnCount = matrix.ColumnCount();
 	   const size_t rowCount = matrix.RowCount();
@@ -31,7 +32,8 @@ protected:
 	   }
    }
 
-   static void CheckEquality(const SMT::Matrix<double>& matrix1, const SMT::Matrix<double>& matrix2, bool epsilonIsZero)
+   template<typename ElementType>
+   static void CheckEquality(const SMT::Matrix<ElementType>& matrix1, const SMT::Matrix<ElementType>& matrix2, bool epsilonIsZero)
    {
       EXPECT_EQ(matrix1.TypeName(), matrix2.TypeName());
       EXPECT_EQ(matrix1.ColumnCount(), matrix2.ColumnCount());
@@ -53,6 +55,18 @@ protected:
                ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(matrix1.Element(i, j) - matrix2.Element(i, j)));
             }
          }
+      }
+   }
+   template<typename ElementType>
+   static void CheckEquality(ElementType scalar1, ElementType scala2, bool epsilonIsZero)
+   {
+      if (epsilonIsZero)
+      {
+         EXPECT_EQ(matrix1.Element(i, j), matrix2.Element(i, j));
+      }
+      else
+      {
+         ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(scalar1 - scalar1));
       }
    }
 };

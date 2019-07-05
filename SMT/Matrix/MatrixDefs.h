@@ -67,6 +67,13 @@ public:
       std::string Description_;            		// Description error/warning/action. It is used on logging.
       SharedPtr Matrix_;                        // The result of the operation. It equals nullptr if the operation is failed
    };
+   struct ScalarOperationResult
+   {
+      OperationResultCode Code_ =               // Type of the result
+      OperationResultCode::NotImplemented;
+      std::string Description_;            		// Description error/warning/action. It is used on logging.
+      std::shared_ptr<ElementType> Value_;      // The result of the operation
+   };
 
    // -- Class-specific methods
    // Constantructor
@@ -111,7 +118,7 @@ public:
    virtual OperationResult Transpose() const { return OperationResult(); }
    // Determinant
    virtual Complexity::Type DeterminantCalculation() const { return Complexity::Undefined; }
-   virtual OperationResult Determinant() const { return OperationResult(); }
+   virtual ScalarOperationResult Determinant() const { return ScalarOperationResult(); }
 
    // Interface for elementary operations
    struct IElementaryOperations
