@@ -156,18 +156,52 @@ typename Matrix<ElementType>::OperationResult Multiply(const Matrix<ElementType>
 }
 
 template <typename ElementType>
+typename Matrix<ElementType>::OperationResult Invert(const Matrix<ElementType>& matrix)
+{
+   Matrix<ElementType>::OperationResult result = matrix.Invert();
+   if (result.Code_ == OperationResultCode::NotImplemented)
+   {
+      const StandardMatrix<ElementType> standardMatrix(matrix);
+      result = standardMatrix.Invert();
+      if (result.Code_ == OperationResultCode::Ok && result.Matrix != nullptr)
+      {
+         result.Code_ = OperationResultCode::Warning;
+         result.Description_ = "Matrix (type:" + matrix->TypeName() + ") has no Invert method. Standard matrix (type:" + standardMatrix.TypeName() + ") is used instead";
+      }
+   }
+   return result;
+}
+
+template <typename ElementType>
 typename Matrix<ElementType>::OperationResult Transpose(const Matrix<ElementType>& matrix)
 {
    Matrix<ElementType>::OperationResult result = matrix.Transpose();
    if (result.Code_ == OperationResultCode::NotImplemented)
    {
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(matrix);
-      result.Code_ = OperationResultCode::Warning;
-      result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Transpose method. Standard matrix (type:" + result.Matrix_->TypeName() + ") is used instead";
+      const StandardMatrix<ElementType> standardMatrix(matrix);
+      result = standardMatrix.Determinant();
+      if (result.Code_ == OperationResultCode::Ok && result.Matrix != nullptr)
+      {
+         result.Code_ = OperationResultCode::Warning;
+         result.Description_ = "Matrix (type:" + matrix->TypeName() + ") has no Transpose method. Standard matrix (type:" + standardMatrix.TypeName() + ") is used instead";
+      }
    }
-   else if ((result.Code_ == OperationResultCode::Ok) && (result.Description_.empty()))
+   return result;
+}
+
+template <typename ElementType>
+typename Matrix<ElementType>::ScalarOperationResult Determinant(const Matrix<ElementType>& matrix)
+{
+   Matrix<ElementType>::ScalarOperationResult result = matrix.Determinant();
+   if (result.Code_ == OperationResultCode::NotImplemented)
    {
-      result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has been transposed.";
+      const StandardMatrix<ElementType> standardMatrix(matrix);
+      result = standardMatrix.Determinant();
+      if (result.Code_ == OperationResultCode::Ok)
+      {
+         result.Code_ = OperationResultCode::Warning;
+         result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Determinant method. Standard matrix (type:" + standardMatrix.TypeName() + ") is used instead";
+      }
    }
    return result;
 }

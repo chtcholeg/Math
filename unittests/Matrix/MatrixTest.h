@@ -12,7 +12,7 @@ class MatrixTest : public ::testing::Test
 {
 protected:
    template<typename ElementType>
-   static void CheckForEachElement(const SMT::Matrix<ElementType>& matrix, const std::function<ElementType(size_t /*row*/, size_t /*column*/)>& func, bool epsilonIsZero)
+   static void CheckForEachElement(const SMT::Matrix<ElementType>& matrix, const std::function<ElementType(size_t /*row*/, size_t /*column*/)>& func, bool epsilonIsZero, ElementType factor)
    {
 	   const size_t columnCount = matrix.ColumnCount();
 	   const size_t rowCount = matrix.RowCount();
@@ -26,14 +26,14 @@ protected:
 			  }
 			  else
 			  {
-			     ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(matrix.Element(i, j) - func(i, j)));
+              ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(matrix.Element(i, j) - func(i, j), factor));
 			  }
 		  }
 	   }
    }
 
    template<typename ElementType>
-   static void CheckEquality(const SMT::Matrix<ElementType>& matrix1, const SMT::Matrix<ElementType>& matrix2, bool epsilonIsZero)
+   static void CheckEquality(const SMT::Matrix<ElementType>& matrix1, const SMT::Matrix<ElementType>& matrix2, bool epsilonIsZero, ElementType factor)
    {
       EXPECT_EQ(matrix1.TypeName(), matrix2.TypeName());
       EXPECT_EQ(matrix1.ColumnCount(), matrix2.ColumnCount());
@@ -52,21 +52,21 @@ protected:
             }
             else
             {
-               ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(matrix1.Element(i, j) - matrix2.Element(i, j)));
+               ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(matrix1.Element(i, j) - matrix2.Element(i, j), factor));
             }
          }
       }
    }
    template<typename ElementType>
-   static void CheckEquality(ElementType scalar1, ElementType scala2, bool epsilonIsZero)
+   static void CheckEquality(ElementType scalar1, ElementType scalar2, bool epsilonIsZero, ElementType factor)
    {
       if (epsilonIsZero)
       {
-         EXPECT_EQ(matrix1.Element(i, j), matrix2.Element(i, j));
+         EXPECT_EQ(scalar1, scalar2);
       }
       else
       {
-         ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(scalar1 - scalar1));
+         ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(scalar1 - scalar2, factor));
       }
    }
 };

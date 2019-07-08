@@ -195,7 +195,7 @@ typename Matrix<ElementType>::ScalarOperationResult CalcDeterminant_GaussJordanE
          {
             continue;
          }
-         const ElementType curKoef = matrix->Element(i, i) / matrix->Element(j, i);
+         const ElementType curKoef = matrix->Element(j, i) / matrix->Element(i, i);
          matrixElementaryOperations->MultiplyAndSubtract(j, i, curKoef);
       }
    }

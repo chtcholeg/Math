@@ -93,7 +93,7 @@ public:
    virtual OperationResult Invert() const override { return Algorithms::GaussJordanElimination<ElementType>(*this, createIdentityMatrix); }
    virtual Complexity::Type TransposeComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Transpose() const override { return transpose(); }
-   virtual Complexity::Type DeterminantCalculation() const override { return Complexity::Cubic; }
+   virtual Complexity::Type DeterminantEvaluationComplexity() const override { return Complexity::Cubic; }
    virtual ScalarOperationResult Determinant() const override { return Algorithms::CalcDeterminant_GaussJordanElimination<ElementType>(*this); }
    virtual IElementaryOperations* ElementaryOperations() { return this; }
    // Matrix::IElementaryOperations

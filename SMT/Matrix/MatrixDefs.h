@@ -117,7 +117,7 @@ public:
    virtual Complexity::Type TransposeComplexity() const { return Complexity::Undefined; }
    virtual OperationResult Transpose() const { return OperationResult(); }
    // Determinant
-   virtual Complexity::Type DeterminantCalculation() const { return Complexity::Undefined; }
+   virtual Complexity::Type DeterminantEvaluationComplexity() const { return Complexity::Undefined; }
    virtual ScalarOperationResult Determinant() const { return ScalarOperationResult(); }
 
    // Interface for elementary operations
@@ -151,7 +151,9 @@ template <typename ElementType>
 template <typename ElementType>
    typename std::enable_if<std::is_floating_point<ElementType>::value, ElementType>::type Epsilon() { return std::numeric_limits<ElementType>::epsilon(); }
 template <typename ElementType>
-   bool CanAssumeItIsZero(const ElementType& element) { return std::abs<ElementType>(element - Zero<ElementType>()) <= Epsilon<ElementType>(); }
+   bool CanAssumeItIsZero(const ElementType& element, ElementType factor = One<ElementType>()) { return std::abs<ElementType>(element - Zero<ElementType>()) <= factor * Epsilon<ElementType>(); }
+template <typename ElementType>
+   std::function<ElementType(size_t row, size_t column)> IdentityMatrixFunction() { return [](size_t row, size_t column) -> ElementType { return (column == row) ? One<ElementType>() : Zero<ElementType>(); }; }
 } // namespace MatrixSettings
 
 } // namespace SMT
