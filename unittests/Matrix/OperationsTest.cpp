@@ -108,3 +108,23 @@ TEST_F(OperationsTest, Multiplication)
    };
    CheckForEachElement<double>(*matrix_4x4_1mult2.Matrix_, func1mult2, false, 1.0);
 }
+
+TEST_F(OperationsTest, MultiplicationByNumber)
+{
+   auto func = [](size_t row, size_t column)->double
+   {
+      return static_cast<double>(row) * static_cast<double>(column) + 1;
+   };
+   const auto matrix_4x4 = CreateStandardMatrix(4, 4, func);
+   const double number = 1.9;
+
+   SMT::OperationResultCode code;
+   std::string description;
+   const auto result = SMT::MultiplyByNumber(*matrix_4x4, number);
+   EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
+   auto funcMult = [func, number](size_t row, size_t column)->double
+   {
+      return func(row, column) * number;
+   };
+   CheckForEachElement<double>(*result.Matrix_, funcMult, false, 1.0);
+}
