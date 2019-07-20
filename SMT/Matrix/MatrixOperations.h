@@ -163,10 +163,10 @@ typename Matrix<ElementType>::OperationResult Invert(const Matrix<ElementType>& 
    {
       const StandardMatrix<ElementType> standardMatrix(matrix);
       result = standardMatrix.Invert();
-      if (result.Code_ == OperationResultCode::Ok && result.Matrix != nullptr)
+      if (result.Code_ == OperationResultCode::Ok && result.Matrix_ != nullptr)
       {
          result.Code_ = OperationResultCode::Warning;
-         result.Description_ = "Matrix (type:" + matrix->TypeName() + ") has no Invert method. Standard matrix (type:" + standardMatrix.TypeName() + ") is used instead";
+         result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Invert method. Standard matrix (type:" + standardMatrix.TypeName() + ") is used instead";
       }
    }
    return result;
@@ -179,11 +179,11 @@ typename Matrix<ElementType>::OperationResult Transpose(const Matrix<ElementType
    if (result.Code_ == OperationResultCode::NotImplemented)
    {
       const StandardMatrix<ElementType> standardMatrix(matrix);
-      result = standardMatrix.Determinant();
-      if (result.Code_ == OperationResultCode::Ok && result.Matrix != nullptr)
+      result = standardMatrix.Transpose();
+      if (result.Code_ == OperationResultCode::Ok && result.Matrix_ != nullptr)
       {
          result.Code_ = OperationResultCode::Warning;
-         result.Description_ = "Matrix (type:" + matrix->TypeName() + ") has no Transpose method. Standard matrix (type:" + standardMatrix.TypeName() + ") is used instead";
+         result.Description_ = "Matrix (type:" + matrix.TypeName() + ") has no Transpose method. Standard matrix (type:" + standardMatrix.TypeName() + ") is used instead";
       }
    }
    return result;

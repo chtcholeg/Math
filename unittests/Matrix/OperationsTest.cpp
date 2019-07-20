@@ -2,8 +2,9 @@
 #include "gtest/gtest.h"
 
 #include "../../SMT/Matrix/MatrixOperations.h"
+#include "MatrixTest.h"
 
-class OperationsTest : public ::testing::Test
+class OperationsTest : public MatrixTest
 {
 protected:
    static SMT::Matrix<double>::SharedPtr CreateStandardMatrix(size_t rowCount, size_t columnCount, const std::function<double(size_t /*row*/, size_t /*column*/)>& func)
@@ -14,26 +15,6 @@ protected:
       EXPECT_EQ(columnCount, result->ColumnCount());
 
       return result;
-   }
-   template<typename ElementType>
-   static void CheckForEachElement(const SMT::Matrix<ElementType>& matrix, const std::function<ElementType(size_t /*row*/, size_t /*column*/)>& func, bool epsilonIsZero, ElementType factor)
-   {
-      const size_t columnCount = matrix.ColumnCount();
-      const size_t rowCount = matrix.RowCount();
-      for (size_t i = 0; i < rowCount; ++i)
-      {
-         for (size_t j = 0; j < columnCount; ++j)
-         {
-            if (epsilonIsZero)
-            {
-               EXPECT_EQ(matrix.Element(i, j), func(i, j));
-            }
-            else
-            {
-               ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(matrix.Element(i, j) - func(i, j), factor));
-            }
-         }
-      }
    }
 };
 
@@ -118,7 +99,6 @@ TEST_F(OperationsTest, MultiplicationByNumber)
    const auto matrix_4x4 = CreateStandardMatrix(4, 4, func);
    const double number = 1.9;
 
-   SMT::OperationResultCode code;
    std::string description;
    const auto result = SMT::MultiplyByNumber(*matrix_4x4, number);
    EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
@@ -127,4 +107,57 @@ TEST_F(OperationsTest, MultiplicationByNumber)
       return func(row, column) * number;
    };
    CheckForEachElement<double>(*result.Matrix_, funcMult, false, 1.0);
+}
+
+TEST_F(OperationsTest, Invert)
+{
+   auto func = [](size_t row, size_t column)->double
+   {
+      return 1.0 / (static_cast<double>(row) * static_cast<double>(column) + 1.0);
+   };
+   const auto matrix = CreateStandardMatrix(4, 4, func);
+
+   const auto result = SMT::Invert(*matrix);
+   EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
+   const auto multMatrixResult = SMT::Multiply(*matrix, *result.Matrix_);
+   EXPECT_EQ(multMatrixResult.Code_, SMT::OperationResultCode::Ok);
+   auto identityFunc = [](size_t row, size_t column)->double
+   {
+      return (column == row) ? 1.0 : 0.0;
+   };
+   const auto idenityMatrix = CreateStandardMatrix(4, 4, identityFunc);
+   CheckEquality<double>(*multMatrixResult.Matrix_, *idenityMatrix, false, 1000.0);
+}
+
+TEST_F(OperationsTest, Transpose)
+{
+   auto func = [](size_t row, size_t column)->double
+   {
+      return static_cast<double>(column) + 1.0 / (static_cast<double>(row) + 1.0);
+   };
+   const auto matrix = CreateStandardMatrix(4, 4, func);
+
+   const auto result = SMT::Transpose(*matrix);
+   EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
+
+   auto requiredFunc = [func](size_t row, size_t column)->double
+   {
+      return func(column, row);
+   };
+   const auto requiredMatrix = CreateStandardMatrix(4, 4, requiredFunc);
+   CheckEquality<double>(*result.Matrix_, *requiredMatrix, true, 1.0);
+}
+
+TEST_F(OperationsTest, Determinant)
+{
+   const size_t size = 3;
+   auto func = [size](size_t row, size_t column)->double
+   {
+      return (row + column < size - 1) ? 0.0 : (row + column - static_cast<double>(size - 2));
+   };
+   const auto matrix = CreateStandardMatrix(size, size, func);
+   const auto result = SMT::Determinant(*matrix);
+   EXPECT_EQ(result.Code_, SMT::OperationResultCode::Ok);
+   ASSERT_TRUE(result.Value_ != nullptr);
+   ASSERT_TRUE(SMT::MatrixSettings::CanAssumeItIsZero<double>(*result.Value_ + 1.0, 1.0));
 }
