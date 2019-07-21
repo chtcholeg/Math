@@ -23,6 +23,10 @@ class StandardMatrix
 public:
    using InitFunc = std::function<ElementType (size_t /*column*/, size_t /*row*/)>; // A function which initializes all matrix elements
    StandardMatrix(size_t rowCount, size_t columnCount, InitFunc initFunc)
+      : ownData_(rowCount * columnCount)
+      , rowCount_(rowCount)
+      , columnCount_(columnCount)
+      , data_(&ownData_[0])
    {
       assert(initFunc);
       if (!initFunc)
@@ -30,24 +34,40 @@ public:
          const ElementType retValue = MatrixSettings::Zero<ElementType>();
          initFunc = [retValue](size_t /*row*/, size_t /*column*/)->ElementType { return retValue; };
       }
-      init(rowCount, columnCount, initFunc);
+      init(rowCount_, columnCount_, initFunc);
    }
    explicit StandardMatrix(const Matrix<ElementType>& sourceMatrix)
+      : ownData_(sourceMatrix.RowCount() * sourceMatrix.ColumnCount())
+      , rowCount_(sourceMatrix.RowCount())
+      , columnCount_(sourceMatrix.ColumnCount())
+      , data_(&ownData_[0])
    {
       auto initFunc = [&sourceMatrix](size_t row, size_t column)->ElementType { return sourceMatrix.Element(row, column); };
-      init(sourceMatrix.RowCount(), sourceMatrix.ColumnCount(), initFunc);
+      init(rowCount_, columnCount_, initFunc);
+   }
+   explicit StandardMatrix(const StandardMatrix<ElementType>& sourceMatrix)
+      : ownData_(sourceMatrix.rowCount_ * sourceMatrix.columnCount_)
+      , rowCount_(sourceMatrix.rowCount_)
+      , columnCount_(sourceMatrix.columnCount_)
+      , data_(&ownData_[0])
+   {
+      const size_t totalCount = rowCount_ * columnCount_;
+      for (size_t i = 0; i < totalCount; ++i)
+      {
+         data_[i] = sourceMatrix.data_[i];
+      }
    }
 
    static OperationResult Add(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2)
    {
-	  OperationResult result;
+      OperationResult result;
       CheckIfCanAddTogether<ElementType>(matrix1, matrix2, result.Code_, result.Description_);
       if (result.Code_ == OperationResultCode::Error)
       {
          return result;
       }
 	  
-	  auto initFunc = [&matrix1, &matrix2](size_t row, size_t column)->ElementType { return matrix1.Element(row, column) + matrix2.Element(row, column); };
+      auto initFunc = [&matrix1, &matrix2](size_t row, size_t column)->ElementType { return matrix1.Element(row, column) + matrix2.Element(row, column); };
       result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(matrix1.RowCount(), matrix1.ColumnCount(), initFunc);
       result.Code_ = OperationResultCode::Ok;
       return result;
@@ -77,9 +97,9 @@ public:
    }
 
    // Matrix
-   virtual size_t RowCount() const override { return body_.size(); }
-   virtual size_t ColumnCount() const override { return body_.empty() ? 0 : body_[0].size(); }
-   virtual ElementType Element(size_t row, size_t column) const override { return body_[row][column]; }
+   virtual size_t RowCount() const override { return rowCount_; }
+   virtual size_t ColumnCount() const override { return columnCount_; }
+   virtual ElementType Element(size_t row, size_t column) const override { return data_[row * columnCount_ + column]; }
    virtual std::string TypeName() const { return "StandardMatrix"; }
    virtual Complexity::Type CopyingComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Copy() const override { return copy(); }
@@ -102,19 +122,16 @@ public:
    virtual bool MultiplyAndSubtract(size_t rowIndex1, size_t rowIndex2, ElementType number) { return multiplyAndSubtract(rowIndex1, rowIndex2, number); }
 
 private:
-   using Row = std::vector<ElementType>;
-   using Table = std::vector<Row>;
-
-private:
-   Table body_;
+   std::vector<ElementType> ownData_;
+   const size_t rowCount_;
+   const size_t columnCount_;
+   ElementType* data_;
 
    void init(size_t rowCount, size_t columnCount, InitFunc initFunc)
    {
-      body_.resize(rowCount);
       for (size_t rowIndex = 0; rowIndex < rowCount; ++rowIndex)
       {
-         auto& row = body_[rowIndex];
-         row.resize(columnCount);
+         auto row = &data_[rowIndex * columnCount_];
          for (size_t columnIndex = 0; columnIndex < columnCount; ++columnIndex)
          {
             row[columnIndex] = initFunc(rowIndex, columnIndex);
@@ -151,7 +168,7 @@ private:
 
    bool swap(size_t rowIndex1, size_t rowIndex2)
    {
-      if (rowIndex1 >= RowCount() || rowIndex2 >= RowCount())
+      if (rowIndex1 >= rowCount_ || rowIndex2 >= rowCount_)
       {
          return false;
       }
@@ -159,10 +176,9 @@ private:
       {
          return true;
       }
-      const size_t columnCount = ColumnCount();
-      auto& row1 = body_[rowIndex1];
-      auto& row2 = body_[rowIndex2];
-      for (size_t column = 0; column < columnCount; ++column)
+      auto row1 = &data_[rowIndex1 * columnCount_];
+      auto row2 = &data_[rowIndex2 * columnCount_];
+      for (size_t column = 0; column < columnCount_; ++column)
       {
          const auto buffer = row1[column];
          row1[column] = row2[column];
@@ -173,13 +189,12 @@ private:
 
    bool multiplyByNumber(size_t rowIndex, ElementType number)
    {
-      if (rowIndex >= RowCount())
+      if (rowIndex >= rowCount_)
       {
          return false;
       }
-      const size_t columnCount = ColumnCount();
-      auto& row = body_[rowIndex];
-      for (size_t column = 0; column < columnCount; ++column)
+      auto row = &data_[rowIndex * columnCount_];
+      for (size_t column = 0; column < columnCount_; ++column)
       {
          row[column] *= number;
       }
@@ -188,14 +203,13 @@ private:
 
    bool multiplyAndSubtract(size_t rowIndex1, size_t rowIndex2, ElementType number)
    {
-      if (rowIndex1 >= RowCount() || rowIndex2 >= RowCount())
+      if (rowIndex1 >= rowCount_ || rowIndex2 >= rowCount_)
       {
          return false;
       }
-      const size_t columnCount = ColumnCount();
-      auto& row1 = body_[rowIndex1];
-      auto& row2 = body_[rowIndex2];
-      for (size_t column = 0; column < columnCount; ++column)
+      auto row1 = &data_[rowIndex1 * columnCount_];
+      auto row2 = &data_[rowIndex2 * columnCount_];
+      for (size_t column = 0; column < columnCount_; ++column)
       {
          row1[column] -= row2[column] * number;
       }
