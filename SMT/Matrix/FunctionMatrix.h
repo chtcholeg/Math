@@ -45,8 +45,6 @@ public:
    virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) const override{ return add(otherMatrix); }
    virtual Complexity::Type MultiplyByNumberComplexity() const override { return Complexity::Constant; }
    virtual OperationResult MultiplyByNumber(const ElementType& number) const override{ return multiplyByNumber(number); }
-   virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return Complexity::Quadratic; }
-   virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return multiply(anotherMatrix, anotherMatrixIsOnTheLeft); }
    virtual Complexity::Type TransposeComplexity() const override { return Complexity::Constant; }
    virtual OperationResult Transpose() const override{ return transpose(); }
 
@@ -74,7 +72,7 @@ private:
       if (otherFuncMatrix != nullptr)
       {
          OperationResult result;
-         CheckIfCanAddTogether<ElementType>(matrix1, matrix2, result.Code_, result.Description_);
+         CheckIfCanAddTogether<ElementType>(*this, otherMatrix, result.Code_, result.Description_);
          if (result.Code_ == OperationResultCode::Error)
          {
             return result;
@@ -85,6 +83,7 @@ private:
          {
             return func1(column, row) + func2(column, row);
          };
+         result.Matrix_ = std::make_shared<FunctionMatrix<ElementType>>(rowCount_, columnCount_, newFunc);
          return result;
       }
       return StandardMatrix<ElementType>::Add(*this, otherMatrix);
@@ -93,7 +92,7 @@ private:
    OperationResult multiplyByNumber(const ElementType& number) const
    { 
       OperationResult result;
-      auto func = [func_, number](size_t row, size_t column)->ElementType { return func_(row, column) * number; };
+      auto func = [this, number](size_t row, size_t column)->ElementType { return func_(row, column) * number; };
       result.Matrix_ = std::make_shared<FunctionMatrix<ElementType>>(RowCount(), ColumnCount(), func);
       result.Code_ = OperationResultCode::Ok;
       return result;
@@ -101,13 +100,13 @@ private:
    
    OperationResult multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const
    {
-      return anotherMatrixIsOnTheLeft ? StandardMatrix<ElementType>::Multiply(otherMatrix, *this) : StandardMatrix<ElementType>::Multiply(*this, otherMatrix);
+      return anotherMatrixIsOnTheLeft ? StandardMatrix<ElementType>::Multiply(anotherMatrix, *this) : StandardMatrix<ElementType>::Multiply(*this, anotherMatrix);
    }
    
    OperationResult transpose() const
    {
       OperationResult result;
-      auto func = [func_, number](size_t row, size_t column)->ElementType { return func_(column, row); };
+      auto func = [this](size_t row, size_t column)->ElementType { return func_(column, row); };
       result.Matrix_ = std::make_shared<FunctionMatrix<ElementType>>(ColumnCount(), RowCount(), func);
       result.Code_ = OperationResultCode::Ok;
       return result;

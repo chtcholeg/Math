@@ -25,5 +25,8 @@
     <ClCompile Include="Matrix\OperationsTest.cpp">
       <Filter>Matrix</Filter>
     </ClCompile>
+    <ClCompile Include="Matrix\FunctionMatrixTest.cpp">
+      <Filter>Matrix</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

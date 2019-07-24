@@ -80,6 +80,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Matrix\FunctionMatrixTest.cpp" />
     <ClCompile Include="Matrix\OperationsTest.cpp" />
     <ClCompile Include="Matrix\StandardMatrixTest.cpp" />
     <ClInclude Include="Matrix\MatrixTest.h" />
