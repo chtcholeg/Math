@@ -1,9 +1,12 @@
-#ifndef __STANDARD_MATRIX_H__
-#define __STANDARD_MATRIX_H__
+#ifndef __BLOCK_MATRIX_H__
+#define __BLOCK_MATRIX_H__
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Block matrix
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <algorithm>
+#include <functional>
 
 #include "MatrixDefs.h"
 #include "MatrixOperations.h"
@@ -22,20 +25,17 @@ class BlockMatrix
 {
 public:
    using InitFunc = std::function<ElementType (size_t /*column*/, size_t /*row*/)>; // A function which initializes all matrix elements
-   BlockMatrix(size_t rowCount, size_t columnCount, std::uint32_t blockSize, InitFunc initFunc)
-      : ownData_(rowCount * columnCount)
+   BlockMatrix(size_t rowCount, size_t columnCount, std::uint32_t blockSize, InitFunc initFunc = InitFunc)
+      : ownData_(rowCount * columnCount, MatrixSettings::Zero<ElementType>())
       , rowCount_(rowCount)
       , columnCount_(columnCount)
       , blockSize_(blockSize == 0 ? 1 : blockSize)
    {
-      assert(initFunc);
       assert(blockSize != 0);
-      if (!initFunc)
+      if (initFunc)
       {
-         const ElementType retValue = MatrixSettings::Zero<ElementType>();
-         initFunc = [retValue](size_t /*row*/, size_t /*column*/)->ElementType { return retValue; };
+         init(initFunc);
       }
-      init(rowCount_, columnCount_, initFunc);
    }
    BlockMatrix(const Matrix<ElementType>& sourceMatrix, std::uint32_t blockSize)
       : ownData_(sourceMatrix.RowCount() * sourceMatrix.ColumnCount())
@@ -45,21 +45,16 @@ public:
    {
       assert(blockSize != 0);
       auto initFunc = [&sourceMatrix](size_t row, size_t column)->ElementType { return sourceMatrix.Element(row, column); };
-      init(rowCount_, columnCount_, initFunc);
+      init(initFunc);
    }
    explicit BlockMatrix(const BlockMatrix<ElementType>& sourceMatrix)
       : ownData_(sourceMatrix.rowCount_ * sourceMatrix.columnCount_)
       , rowCount_(sourceMatrix.rowCount_)
       , columnCount_(sourceMatrix.columnCount_)
       , blockSize_(sourceMatrix.blockSize_ == 0 ? 1 : sourceMatrix.blockSize_)
-      , blocks_(sourceMatrix.blocks_)
+      , data_(sourceMatrix.data_)
    {
       assert(sourceMatrix.blockSize_ != 0);
-      const size_t totalCount = rowCount_ * columnCount_;
-      for (size_t i = 0; i < totalCount; ++i)
-      {
-         data_[i] = sourceMatrix.data_[i];
-      }
    }
 
    static OperationResult Add(const Matrix<ElementType>& matrix1, const Matrix<ElementType>& matrix2)
@@ -70,10 +65,18 @@ public:
       {
          return result;
       }
-	  
-      auto initFunc = [&matrix1, &matrix2](size_t row, size_t column)->ElementType { return matrix1.Element(row, column) + matrix2.Element(row, column); };
-      result.Matrix_ = std::make_shared<BlockMatrix<ElementType>>(matrix1.RowCount(), matrix1.ColumnCount(), blockSize_, initFunc);
-      result.Code_ = OperationResultCode::Ok;
+      const BlockMatrix<ElementType>& blockMatrix1 = dynamic_cast<const BlockMatrix<ElementType>&>(matrix1);
+      const BlockMatrix<ElementType>& blockMatrix2 = dynamic_cast<const BlockMatrix<ElementType>&>(matrix2);
+      if ( (blockMatrix1 != nullptr) && (blockMatrix2 != nullptr) && (blockMatrix1.blockSize_ == blockMatrix2.blockSize_) )
+      {
+         result.Matrix_ = std::make_shared<BlockMatrix<ElementType>>(matrix1.RowCount(), matrix1.ColumnCount(), blockSize_);
+         std::transform(blockMatrix1.ownData_.begin(), blockMatrix1.ownData_.end(), blockMatrix2.ownData_.begin(), result.Matrix_->ownData_.begin(), std::plus<ElementType>());
+         result.Code_ = OperationResultCode::Ok;
+      }
+      else
+      {
+         result.Code_ = OperationResultCode::NotImplemented;
+      }
       return result;
    }
    
@@ -85,62 +88,54 @@ public:
       {
          return result;
       }
-      const size_t numberOfItems = leftMatrix.ColumnCount();
-      auto initFunc = [&leftMatrix, &rightMatrix, numberOfItems](size_t row, size_t column)-> ElementType 
-      { 
-         ElementType result = MatrixSettings::Zero<ElementType>();
-         for (size_t i = 0; i < numberOfItems; ++i)
-         {
-            result += leftMatrix.Element(row, i) * rightMatrix.Element(i, column);
-         }
-         return result;
-      };
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(leftMatrix.RowCount(), rightMatrix.ColumnCount(), initFunc);
-      result.Code_ = OperationResultCode::Ok;
+      const BlockMatrix<ElementType>& blockMatrix1 = dynamic_cast<const BlockMatrix<ElementType>&>(matrix1);
+      const BlockMatrix<ElementType>& blockMatrix2 = dynamic_cast<const BlockMatrix<ElementType>&>(matrix2);
+      if ((blockMatrix1 != nullptr) && (blockMatrix2 != nullptr) && (blockMatrix1.blockSize_ == blockMatrix2.blockSize_))
+      {
+         result.Matrix_ = multiply(blockMatrix1, blockMatrix2);
+         result.Code_ = (result.Matrix_ == nullptr) ? OperationResultCode::Error : OperationResultCode::Ok;
+      }
+      else
+      {
+         result.Code_ = OperationResultCode::NotImplemented;
+      }
       return result;
    }
 
    // Matrix
    virtual size_t RowCount() const override { return rowCount_; }
    virtual size_t ColumnCount() const override { return columnCount_; }
-   virtual ElementType Element(size_t row, size_t column) const override { return data_[row * columnCount_ + column]; }
-   virtual std::string TypeName() const { return "StandardMatrix"; }
+   virtual ElementType Element(size_t row, size_t column) const override { return element(row, column); }
+   virtual std::string TypeName() const { return "BlockMatrix"; }
    virtual Complexity::Type CopyingComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Copy() const override { return copy(); }
-   virtual Complexity::Type AdditionComplexity(const Matrix<ElementType>& otherMatrix) const override{ return Complexity::Quadratic; }
-   virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) const override{ return Add(*this, otherMatrix); }
+   virtual Complexity::Type AdditionComplexity(const Matrix<ElementType>& otherMatrix) const override { return Complexity::Quadratic; }
+   virtual OperationResult Add(const Matrix<ElementType>& otherMatrix) const override { return Add(*this, otherMatrix); }
    virtual Complexity::Type MultiplyByNumberComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult MultiplyByNumber(const ElementType& number) const override{ return multiplyByNumber(number); }
    virtual Complexity::Type MultiplyComplexity(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override { return Complexity::Cubic; }
    virtual OperationResult Multiply(const Matrix<ElementType>& anotherMatrix, bool anotherMatrixIsOnTheLeft) const override{ return anotherMatrixIsOnTheLeft ? Multiply(anotherMatrix, *this) : Multiply(*this, anotherMatrix); }
    virtual Complexity::Type InversionComplexity() const override { return Complexity::Cubic; }
-   virtual OperationResult Invert() const override { return Algorithms::GaussJordanElimination<ElementType>(*this, createIdentityMatrix); }
+   virtual OperationResult Invert() const override { return Algorithms::GaussJordanEliminationBlock<ElementType>(*this, createIdentityMatrix); }
    virtual Complexity::Type TransposeComplexity() const override { return Complexity::Quadratic; }
    virtual OperationResult Transpose() const override { return transpose(); }
    virtual Complexity::Type DeterminantEvaluationComplexity() const override { return Complexity::Cubic; }
-   virtual ScalarOperationResult Determinant() const override { return Algorithms::CalcDeterminant_GaussJordanElimination<ElementType>(*this); }
+   virtual ScalarOperationResult Determinant() const override { return Algorithms::CalcDeterminant_GaussJordanEliminationBlock<ElementType>(*this); }
    virtual IElementaryOperations* ElementaryOperations() { return this; }
-   // Matrix::IElementaryOperations
-   virtual bool SwapRows(size_t rowIndex1, size_t rowIndex2) { return swap(rowIndex1, rowIndex2); }
-   virtual bool MultiplyRowByNumber(size_t rowIndex, ElementType number) { return multiplyByNumber(rowIndex, number); }
-   virtual bool MultiplyAndSubtract(size_t rowIndex1, size_t rowIndex2, ElementType number) { return multiplyAndSubtract(rowIndex1, rowIndex2, number); }
 
 private:
    using Block = std::shared_ptr<StandardMatrix<ElementType>>;
 
 private:
    std::vector<ElementType> ownData_;
-   std::vector<std::vector<Block>> blocks_;
    const size_t rowCount_;
    const size_t columnCount_;
    const std::uint64_t blockSize_;   
 
-   void init(size_t rowCount, size_t columnCount, InitFunc initFunc)
+   void init(InitFunc initFunc)
    {
-      const size_t blockRowCount = (rowCount + blockSize_ - 1) / blockSize_;
+      const size_t blockRowCount = (rowCount_ + blockSize_ - 1) / blockSize_;
       const size_t blockColumnCount = (columnCount_ + blockSize_ - 1) / blockSize_;
-      blocks_.resize(blockRowCount);
-
       for (size_t blockRowIndex = 0; blockRowIndex < blockRowCount; ++blockRowIndex)
       {
          auto& blockRow = blocks_[blockRowIndex];
@@ -156,14 +151,28 @@ private:
                convertBlockCoordinatesToMatrixCoordinates(blockColumnIndex, blockRowIndex, blockColumn, blockRow, matrixColumn, matrixRow);
                return initFunc(matrixRow, matrixColumn);
             };
+            const size_t blockRowStart = blockRowIndex * blockSize_ * columnCount_;
+            const size_t blockStart = blockRowStart + blockColumnIndex * blockSize_ * blockSize_;
+            StandardMatrix<ElementItem>(blockHeight, blockWidth, ownData_[blockStart], blockInit);
          }
       }
+   }
+
+   ElementType element(size_t row, size_t column) const
+   {
+      const size_t blockRowCount = (rowCount_ + blockSize_ - 1) / blockSize_;
+      const size_t blockRowIndex = row / blockSize_;
+      const size_t blockColumnIndex = column / blockSize_;
+      const size_t blockWidth = ((blockRowIndex < blockRowCount - 1) || (rowCount_ % blockSize_ == 0)) ? blockSize_ : (rowCount_ % blockSize_);
+      const size_t blockRowStart = blockRowIndex * blockSize_ * columnCount_;
+      const size_t blockStart = blockRowStart + blockColumnIndex * blockSize_ * blockSize_;
+      return ownData_[blockStart + (row % blockSize_) * blockWidth + column % blockSize_];
    }
 
    OperationResult copy() const
    {
       OperationResult result;
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(*this);
+      result.Matrix_ = std::make_shared<BlockMatrix<ElementType>>(*this);
       result.Code_ = OperationResultCode::Ok;
       return result;
    }
@@ -171,10 +180,45 @@ private:
    OperationResult multiplyByNumber(const ElementType& number) const
    { 
       OperationResult result;
-      const Matrix& matrix = *this;
-      auto initFunc = [&matrix, number](size_t row, size_t column)->ElementType { return matrix.Element(row, column) * number; };
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(RowCount(), ColumnCount(), initFunc);
+      result.Matrix_ = std::make_shared<BlockMatrix<ElementType>>(*this);
+      auto& data = result.Matrix_->data_;
+      std::transform(data.begin(), data.end(), data.begin(), [number](ElementType& value)->ElementType { return value * number; });
       result.Code_ = OperationResultCode::Ok;
+      return result;
+   }
+
+   static typename BlockMatrix<ElementType>::SharedPtr multiply(const BlockMatrix<ElementType>& m1, const BlockMatrix<ElementType>& m2)
+   {
+      if (m1.blockSize_ != m2.blockSize_)
+      {
+         return nullptr;
+      }
+      BlockMatrix<ElementType>::SharedPtr result(std::make_shared<BlockMatrix<ElementType>>(m1.RowCount(), m2.ColumnCount(), m1.blockSize_));
+
+      const size_t blockRowCount1 = (m1.RowCount() + blockSize_ - 1) / blockSize_;
+      const size_t blockColumnCount1 = (m1.ColumnCount() + blockSize_ - 1) / blockSize_;
+      const size_t blockRowCount2 = (m2.RowCount() + blockSize_ - 1) / blockSize_;
+      const size_t blockColumnCount2 = (m2.ColumnCount() + blockSize_ - 1) / blockSize_;
+
+      for (size_t blockColumnIndexResult = 0; blockColumnIndexResult < blockColumnCount2; ++blockColumnIndexResult) 
+      {
+         for (size_t blockRowIndexResult = 0; blockRowIndexResult < blockRowCount1; ++blockRowIndexResult)
+         {
+            const size_t blockWidth = ((blockRowIndexResult < blockRowCount1 - 1) || (m1.RowCount() % blockSize_ == 0)) ? blockSize_ : (m1.RowCount() % blockSize_);
+            const size_t blockHeight = ((blockColumnIndexResult < blockColumnCount2 - 1) || (m2.ColumnCount() % blockSize_ == 0)) ? blockSize_ : (m2.ColumnCount() % blockSize_);
+            auto& dataStart = ownData_[blockStart + (row % blockSize_) * blockWidth + column % blockSize_]
+            StandardMatrix<ElementType> resultBlock(blockHeight, blockWidth, );
+
+
+         }
+      }
+
+      const size_t blockRowIndex = row / blockSize_;
+      const size_t blockColumnIndex = column / blockSize_;
+      const size_t blockWidth = ((blockRowIndex < blockRowCount - 1) || (rowCount_ % blockSize_ == 0)) ? blockSize_ : (rowCount_ % blockSize_);
+      const size_t blockRowStart = blockRowIndex * blockSize_ * columnCount_;
+      const size_t blockStart = blockRowStart + blockColumnIndex * blockSize_ * blockSize_;
+
       return result;
    }
    
@@ -182,59 +226,9 @@ private:
    {
       OperationResult result;
       auto initFunc = [this](size_t row, size_t column)->ElementType { return Element(column, row); };
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(ColumnCount(), RowCount(), initFunc);
+      result.Matrix_ = std::make_shared<BlockMatrix<ElementType>>(ColumnCount(), RowCount(), initFunc);
       result.Code_ = OperationResultCode::Ok;
       return result;
-   }
-
-   bool swap(size_t rowIndex1, size_t rowIndex2)
-   {
-      if (rowIndex1 >= rowCount_ || rowIndex2 >= rowCount_)
-      {
-         return false;
-      }
-      if (rowIndex1 == rowIndex2)
-      {
-         return true;
-      }
-      auto row1 = &data_[rowIndex1 * columnCount_];
-      auto row2 = &data_[rowIndex2 * columnCount_];
-      for (size_t column = 0; column < columnCount_; ++column)
-      {
-         const auto buffer = row1[column];
-         row1[column] = row2[column];
-         row2[column] = buffer;
-      }
-      return true;
-   }
-
-   bool multiplyByNumber(size_t rowIndex, ElementType number)
-   {
-      if (rowIndex >= rowCount_)
-      {
-         return false;
-      }
-      auto row = &data_[rowIndex * columnCount_];
-      for (size_t column = 0; column < columnCount_; ++column)
-      {
-         row[column] *= number;
-      }
-      return true;
-   }
-
-   bool multiplyAndSubtract(size_t rowIndex1, size_t rowIndex2, ElementType number)
-   {
-      if (rowIndex1 >= rowCount_ || rowIndex2 >= rowCount_)
-      {
-         return false;
-      }
-      auto row1 = &data_[rowIndex1 * columnCount_];
-      auto row2 = &data_[rowIndex2 * columnCount_];
-      for (size_t column = 0; column < columnCount_; ++column)
-      {
-         row1[column] -= row2[column] * number;
-      }
-      return true;
    }
 
    static Matrix<ElementType>::SharedPtr createIdentityMatrix(size_t size)
@@ -243,7 +237,7 @@ private:
       {
          return (row == column) ? MatrixSettings::One<ElementType>() : MatrixSettings::Zero<ElementType>();
       };
-      return std::make_shared<StandardMatrix<ElementType>>(size, size, initFunc);
+      return std::make_shared<BlockMatrix<ElementType>>(size, size, initFunc, blockSize_);
    }
 
    static void convertBlockCoordinatesToMatrixCoordinates(size_t blockColumnIndex, size_t blockRowIndex, size_t blockColumn, size_t blockRow, size_t& matrixColumn, size_t& matrixRow)
@@ -255,4 +249,4 @@ private:
 
 } // namespace SMT
 
-#endif // __STANDARD_MATRIX_H__
+#endif // __BLOCK_MATRIX_H__

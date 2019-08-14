@@ -23,18 +23,27 @@ class StandardMatrix
 public:
    using InitFunc = std::function<ElementType (size_t /*column*/, size_t /*row*/)>; // A function which initializes all matrix elements
    StandardMatrix(size_t rowCount, size_t columnCount, InitFunc initFunc)
-      : ownData_(new std::vector<ElementType>(rowCount * columnCount))
+      : ownData_(new std::vector<ElementType>(rowCount * columnCount, MatrixSettings::Zero<ElementType>()))
       , rowCount_(rowCount)
       , columnCount_(columnCount)
       , data_(&((*ownData_)[0]))
    {
       assert(initFunc);
-      if (!initFunc)
+      if (initFunc)
       {
-         const ElementType retValue = MatrixSettings::Zero<ElementType>();
-         initFunc = [retValue](size_t /*row*/, size_t /*column*/)->ElementType { return retValue; };
+         init(rowCount_, columnCount_, initFunc);
       }
-      init(rowCount_, columnCount_, initFunc);
+   }
+   StandardMatrix(size_t rowCount, size_t columnCount, ElementType& data, InitFunc initFunc = InitFunc())
+      : ownData_(nullptr)
+      , rowCount_(rowCount)
+      , columnCount_(columnCount)
+      , data_(&data)
+   {
+      if (initFunc)
+      {
+         init(rowCount_, columnCount_, initFunc);
+      }
    }
    explicit StandardMatrix(const Matrix<ElementType>& sourceMatrix)
       : ownData_(new std::vector<ElementType>(sourceMatrix.RowCount() * sourceMatrix.ColumnCount()))
@@ -137,7 +146,7 @@ private:
    OperationResult copy() const
    {
       OperationResult result;
-      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(static_cast<Matrix<ElementType>&>(*this));
+      result.Matrix_ = std::make_shared<StandardMatrix<ElementType>>(static_cast<const Matrix<ElementType>&>(*this));
       result.Code_ = OperationResultCode::Ok;
       return result;
    }
